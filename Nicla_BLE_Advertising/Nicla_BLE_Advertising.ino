@@ -4,6 +4,7 @@
 
 #define PACKET_SIZE 130  // Define the maximum BLE packet size
 #define BLE_SENSE_UUID(val) ("19b10000-" val "-537e-4f6c-d104768a1214")
+#define SERIAL_DEBUG 1
 
 const int VERSION = 0x00000000;
 int batteryLevel = 0;
@@ -34,9 +35,10 @@ SensorBSEC bsec(SENSOR_ID_BSEC);
 String name;
 
 void setup() {
-  Serial.begin(115200);
-
-  Serial.println("Start");
+  if (SERIAL_DEBUG){
+    Serial.begin(115200);
+    Serial.println("Start");
+  }
 
   nicla::begin();
   nicla::leds.begin();
@@ -55,16 +57,17 @@ void setup() {
   gas.begin();
 
   if (!BLE.begin()){
-    Serial.println("Failed to initialized BLE!");
+    if (SERIAL_DEBUG) Serial.println("Failed to initialized BLE!");
 
     while (1)
       ;
   }
 
   String address = BLE.address();
-
-  Serial.print("address = ");
-  Serial.println(address);
+  if (SERIAL_DEBUG){
+    Serial.print("address = ");
+    Serial.println(address);
+  }
 
   address.toUpperCase();
 
@@ -74,8 +77,10 @@ void setup() {
   name += address[address.length() - 2];
   name += address[address.length() - 1];
 
-  Serial.print("name = ");
-  Serial.println(name);
+  if (SERIAL_DEBUG){
+    Serial.print("name = ");
+    Serial.println(name);
+  }
 
   BLE.setLocalName(name.c_str());
   BLE.setDeviceName(name.c_str());
@@ -141,8 +146,8 @@ void loop() {
       if (strcpy(ledState, "blue") != 0){
         nicla::leds.setColor(blue);
         strcpy(ledState, "blue");
-
       }
+      packet_id = 0;
     }
   }
   else{
@@ -152,8 +157,13 @@ void loop() {
     // if programStatus is 1, save the data to nvram
     if (programStatus == 1){
       // nicla::saveDataToNvram();
-      Serial.println("Saving data to nvram");
+      if (SERIAL_DEBUG) Serial.println("Saving data to nvram");
     }
+    // if programStatus is 0, reset the packet_id counter
+    else{
+      packet_id = 0;
+    }
+
     if (strcpy(ledState, "red") != 0){
       nicla::leds.setColor(red);
       strcpy(ledState, "red");
@@ -178,17 +188,8 @@ void blePeripheralDisconnectHandler(BLEDevice central){
 
 void onCommandCharacteristicWrite(BLEDevice central, BLECharacteristic characteristic){
   programStatus = commandCharacteristic.value()[0];
-
-  if (programStatus == 0){
-    Serial.print("programStatus = ");
-    Serial.println("Stop");
-  }
-  else if (programStatus == 1){
-    Serial.print("programStatus = ");
-    Serial.println("Start");
-  }
-  else{
-    Serial.print("programStatus = ");
-    Serial.println("Unknown");
+  if (SERIAL_DEBUG) {
+    Serial.print("Program status: ");
+    Serial.println(programStatus);
   }
 }
