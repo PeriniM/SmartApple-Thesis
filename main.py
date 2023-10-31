@@ -16,7 +16,7 @@ nicla_address = "EE:DF:46:E7:08:80" # Nicla Sense Me device address
 device_name = None
 client = None
 isStarted = False
-push_influxdb = False
+push2influxdb = True
 
 # InfluxDB Settings
 INFLUXDB_URL = config('INFLUXDB_URL', cast=str)
@@ -54,7 +54,7 @@ def notification_handler(sender: int, data: bytearray):
     if match:
         packet_id, g_x, g_y, g_z, a_x, a_y, a_z, q_x, q_y, q_z, q_w = match.groups()
         timestamp = datetime.utcnow()
-        if push_influxdb:
+        if push2influxdb:
             write_to_influxdb("movement_sensor_data", {
                 "packet_id": int(packet_id),
                 "gyro_x": float(g_x),

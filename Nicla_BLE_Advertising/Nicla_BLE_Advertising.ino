@@ -13,7 +13,9 @@ char ledState[10] = "off";
 // program status received from the web app
 byte programStatus = 0;
 
+
 uint32_t packet_id = 0;  // Initialize id for redundancy check
+bool startSaving = 1;
 
 BLEService service(BLE_SENSE_UUID("0000"));
 BLEUnsignedIntCharacteristic versionCharacteristic(BLE_SENSE_UUID("1001"), BLERead);
@@ -105,6 +107,11 @@ void loop() {
   if (BLE.connected()){
     // if programStatus is 1, start the sensors
     if (programStatus == 1){
+      if (!startSaving){
+        packet_id = 0;
+        startSaving = 1;
+      } 
+
       BHY2.update();
       if (dataCharacteristic.subscribed()){
 
@@ -156,6 +163,10 @@ void loop() {
     
     // if programStatus is 1, save the data to nvram
     if (programStatus == 1){
+      if (startSaving){
+        packet_id = 0;
+        startSaving = 0;
+      }
       // nicla::saveDataToNvram();
       if (SERIAL_DEBUG) Serial.println("Saving data to nvram");
     }
@@ -188,8 +199,14 @@ void blePeripheralDisconnectHandler(BLEDevice central){
 
 void onCommandCharacteristicWrite(BLEDevice central, BLECharacteristic characteristic){
   programStatus = commandCharacteristic.value()[0];
-  if (SERIAL_DEBUG) {
-    Serial.print("Program status: ");
-    Serial.println(programStatus);
+
+  if (programStatus == 0){
+    if (SERIAL_DEBUG) Serial.print("programStatus = 0");
+  }
+  else if (programStatus == 1){
+    if (SERIAL_DEBUG) Serial.print("programStatus = 1");
+  }
+  else{
+    if (SERIAL_DEBUG) Serial.print("programStatus = Unknown");
   }
 }
