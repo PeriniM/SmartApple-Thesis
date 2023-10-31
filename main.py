@@ -16,6 +16,7 @@ nicla_address = "EE:DF:46:E7:08:80" # Nicla Sense Me device address
 device_name = None
 client = None
 isStarted = False
+push_influxdb = False
 
 # InfluxDB Settings
 INFLUXDB_URL = config('INFLUXDB_URL', cast=str)
@@ -47,25 +48,26 @@ def write_to_influxdb(measurement, data, timestamp):
 
 def notification_handler(sender: int, data: bytearray):
     global pattern
-    
+
     raw_data = data.decode('utf-8')
     match = pattern.match(raw_data)
     if match:
         packet_id, g_x, g_y, g_z, a_x, a_y, a_z, q_x, q_y, q_z, q_w = match.groups()
         timestamp = datetime.utcnow()
-        write_to_influxdb("movement_sensor_data", {
-            "packet_id": int(packet_id),
-            "gyro_x": float(g_x),
-            "gyro_y": float(g_y),
-            "gyro_z": float(g_z),
-            "accel_x": float(a_x),
-            "accel_y": float(a_y),
-            "accel_z": float(a_z),
-            "quat_x": float(q_x),
-            "quat_y": float(q_y),
-            "quat_z": float(q_z),
-            "quat_w": float(q_w)
-        }, timestamp)
+        if push_influxdb:
+            write_to_influxdb("movement_sensor_data", {
+                "packet_id": int(packet_id),
+                "gyro_x": float(g_x),
+                "gyro_y": float(g_y),
+                "gyro_z": float(g_z),
+                "accel_x": float(a_x),
+                "accel_y": float(a_y),
+                "accel_z": float(a_z),
+                "quat_x": float(q_x),
+                "quat_y": float(q_y),
+                "quat_z": float(q_z),
+                "quat_w": float(q_w)
+            }, timestamp)
         
         print(f"Packet ID: {packet_id}")
         print(f"Gyroscope: [{g_x}, {g_y}, {g_z}]")
@@ -88,7 +90,6 @@ async def main_loop(address):
             
                     # start the sensors notification
                     await client.start_notify(SENSORS_UUID, notification_handler)
-
                     while client.is_connected:
                         await asyncio.sleep(1)
                 else:
@@ -127,7 +128,11 @@ async def main():
             except Exception as e:
                 print(f"Error during cleanup: {e}")
 
-
 loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+
+try:
+    loop.run_until_complete(main())
+finally:
+    loop.close()
+
 
