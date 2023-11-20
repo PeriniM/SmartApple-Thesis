@@ -4,7 +4,7 @@
 
 #define PACKET_SIZE 130  // Define the maximum BLE packet size
 #define BLE_SENSE_UUID(val) ("19b10000-" val "-537e-4f6c-d104768a1214")
-#define SERIAL_DEBUG 1
+#define SERIAL_DEBUG 0
 
 const int VERSION = 0x00000000;
 int batteryLevel = 0;
@@ -20,6 +20,12 @@ bool startSaving = 1;
 BLEService service(BLE_SENSE_UUID("0000"));
 BLEUnsignedIntCharacteristic versionCharacteristic(BLE_SENSE_UUID("1001"), BLERead);
 BLECharacteristic dataCharacteristic(BLE_SENSE_UUID("A001"), BLERead | BLENotify, PACKET_SIZE); // One characteristic for all data
+// to read the rssi of the connection
+BLEDevice central;
+int pastRssi = 0;
+// update the rssi every x seconds
+unsigned long lastRssiUpdate = 0;
+unsigned long refreshRateRssi = 2000;
 
 // set caracteristic to send a command to the board
 BLECharacteristic commandCharacteristic(BLE_SENSE_UUID("8002"), BLERead | BLEWrite, 1 * sizeof(byte)); // Array of 1 byte, command
@@ -105,6 +111,9 @@ void loop() {
   BHY2.update();
 
   if (BLE.connected()){
+    // define the central device
+    central = BLE.central();
+    
     // if programStatus is 1, start the sensors
     if (programStatus == 1){
       if (!startSaving){
@@ -118,25 +127,23 @@ void loop() {
         float gyroValues[3] = {gyroscope.x(), gyroscope.y(), gyroscope.z()};
         float accelValues[3] = {accelerometer.x(), accelerometer.y(), accelerometer.z()};
         float quatValues[4] = {quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()};
-        // float tempValue = temperature.value();
-        // uint8_t humValue = humidity.value() + 0.5f;
-        // float pressureValue = pressure.value();
-        // float airQuality = float(bsec.iaq());
-        // uint32_t co2 = bsec.co2_eq();
-        // unsigned int gValue = gas.value();
-        // uint8_t battLevel = nicla::getBatteryVoltagePercentage();
+        if (millis() - lastRssiUpdate > refreshRateRssi){
+          int rssi = central.rssi();
+          // if it is different from 0, update the pastRssi
+          if (rssi != 0){
+            pastRssi = rssi;
+          }
+          // if it is 0, use the pastRssi
+          else{
+            rssi = pastRssi;
+          }
+          lastRssiUpdate = millis();
+        }
 
         char dataPacket[PACKET_SIZE];
-        // snprintf(dataPacket, sizeof(dataPacket),
-        //         "%d,T:%.2f,H:%d,P:%.2f,G:%.2f,%.2f,%.2f,A:%.2f,%.2f,%.2f,Q:%.2f,%.2f,%.2f,%.2f,IAQ:%.2f,CO2:%d,Gas:%d,Batt:%d",
-        //         packet_id, tempValue, humValue, pressureValue,
-        //         gyroValues[0], gyroValues[1], gyroValues[2],
-        //         accelValues[0], accelValues[1], accelValues[2],
-        //         quatValues[0], quatValues[1], quatValues[2], quatValues[3],
-        //         airQuality, co2, gValue, battLevel);
         snprintf(dataPacket, sizeof(dataPacket),
-                "%d,G:%.2f,%.2f,%.2f,A:%.2f,%.2f,%.2f,Q:%.2f,%.2f,%.2f,%.2f",
-                packet_id, gyroValues[0], gyroValues[1], gyroValues[2],
+                "%d,%d,G:%.2f,%.2f,%.2f,A:%.2f,%.2f,%.2f,Q:%.2f,%.2f,%.2f,%.2f",
+                packet_id, rssi, gyroValues[0], gyroValues[1], gyroValues[2],
                 accelValues[0], accelValues[1], accelValues[2],
                 quatValues[0], quatValues[1], quatValues[2], quatValues[3]);
         dataCharacteristic.writeValue(dataPacket);

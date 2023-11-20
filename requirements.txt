@@ -2,3 +2,6 @@ bleak==0.21.0
 numpy==1.24.4
 matplotlib==3.7.2
 influxdb-client==1.37.0
+python-decouple==3.8
+streamlit==1.28.2
+plotly==5.18.0
