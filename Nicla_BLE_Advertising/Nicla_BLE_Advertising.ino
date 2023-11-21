@@ -4,7 +4,7 @@
 
 #define PACKET_SIZE 130  // Define the maximum BLE packet size
 #define BLE_SENSE_UUID(val) ("19b10000-" val "-537e-4f6c-d104768a1214")
-#define SERIAL_DEBUG 0
+#define SERIAL_DEBUG 1
 
 const int VERSION = 0x00000000;
 int batteryLevel = 0;
@@ -13,22 +13,24 @@ char ledState[10] = "off";
 // program status received from the web app
 byte programStatus = 0;
 
-
 uint32_t packet_id = 0;  // Initialize id for redundancy check
 bool startSaving = 1;
 
+// BLE service
 BLEService service(BLE_SENSE_UUID("0000"));
+// characteristic to send the version of the firmware
 BLEUnsignedIntCharacteristic versionCharacteristic(BLE_SENSE_UUID("1001"), BLERead);
+// characteristic to send the sensor data to the device
 BLECharacteristic dataCharacteristic(BLE_SENSE_UUID("A001"), BLERead | BLENotify, PACKET_SIZE); // One characteristic for all data
-// to read the rssi of the connection
-BLEDevice central;
+// characteristic to send the command to the device
+BLECharacteristic commandCharacteristic(BLE_SENSE_UUID("8002"), BLERead | BLEWrite, 1 * sizeof(byte)); // Array of 1 byte, command
+
+// RSSI
+int rssi = 0;
 int pastRssi = 0;
 // update the rssi every x seconds
 unsigned long lastRssiUpdate = 0;
 unsigned long refreshRateRssi = 2000;
-
-// set caracteristic to send a command to the board
-BLECharacteristic commandCharacteristic(BLE_SENSE_UUID("8002"), BLERead | BLEWrite, 1 * sizeof(byte)); // Array of 1 byte, command
 
 Sensor temperature(SENSOR_ID_TEMP);
 Sensor humidity(SENSOR_ID_HUM);
@@ -50,7 +52,6 @@ void setup() {
 
   nicla::begin();
   nicla::leds.begin();
-  nicla::leds.setColor(green);
   nicla::enableCharging(100);
 
   //Sensors initialization
@@ -94,6 +95,9 @@ void setup() {
   BLE.setDeviceName(name.c_str());
   BLE.setAdvertisedService(service);
 
+  // Set advertisement interval (in units of 0.625 ms; 32 * 0.625 ms = 20 ms)
+  // BLE.setAdvertisingInterval(32);
+
   // Add characteristics to service
   service.addCharacteristic(versionCharacteristic);
   service.addCharacteristic(dataCharacteristic);
@@ -108,12 +112,9 @@ void setup() {
 }
 
 void loop() {
-  BHY2.update();
 
   if (BLE.connected()){
-    // define the central device
-    central = BLE.central();
-    
+
     // if programStatus is 1, start the sensors
     if (programStatus == 1){
       if (!startSaving){
@@ -127,8 +128,9 @@ void loop() {
         float gyroValues[3] = {gyroscope.x(), gyroscope.y(), gyroscope.z()};
         float accelValues[3] = {accelerometer.x(), accelerometer.y(), accelerometer.z()};
         float quatValues[4] = {quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()};
+        
         if (millis() - lastRssiUpdate > refreshRateRssi){
-          int rssi = central.rssi();
+          rssi = BLE.rssi();
           // if it is different from 0, update the pastRssi
           if (rssi != 0){
             pastRssi = rssi;
@@ -167,6 +169,7 @@ void loop() {
   else{
     // If not connected, start advertising
     BLE.advertise();
+    pastRssi = 0;
     
     // if programStatus is 1, save the data to nvram
     if (programStatus == 1){
@@ -200,7 +203,7 @@ void blePeripheralDisconnectHandler(BLEDevice central){
   // Flashing sequence upon disconnection
   for (int i = 0; i < 2; i++) {  // Loop through the color array
     nicla::leds.setColor(colors[i][0], colors[i][1], colors[i][2]); // Set color from array
-    delay(100); // Delay for 500 milliseconds (adjust as needed)
+    delay(20); // Delay for 20 milliseconds
   }
 }
 
