@@ -83,31 +83,24 @@ async def main_loop(address):
     while True:
         try:
             async with BleakClient(address) as client:
-                if client.is_connected:
-                    print("Connected successfully!")
-                    if not isStarted:
-                        # send a byte 1 to start the program to the command characteristic
-                        await client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
-                        isStarted = True
-            
-                    # start the sensors notification
+                print("Connected successfully!")
+                if not isStarted:
+                    # send a byte 1 to start the program to the command characteristic
+                    await client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
                     await client.start_notify(SENSORS_UUID, notification_handler)
-                    while client.is_connected:
-                        await asyncio.sleep(1)
-                else:
-                    print("Failed to connect, retrying...")
-                    await asyncio.sleep(2)
-                    if isStarted:
-                        isStarted = False
+                    isStarted = True
+
+                while client.is_connected:
+                    await asyncio.sleep(1)
+
         except BleakError as e:
             print(f"BleakError while connecting: {e}")
         except Exception as e:
             print(f"Unexpected error while connecting: {e}")
         finally:
             print("Disconnected. Trying to reconnect...")
-            await asyncio.sleep(2)
-            if client:
-                await client.stop_notify(SENSORS_UUID)
+            isStarted = False
+            await asyncio.sleep(0.5)
        
 async def main():
     global nicla_address, client
@@ -123,10 +116,7 @@ async def main():
         if client:
             try:
                 if client.is_connected:
-                    await client.stop_notify(SENSORS_UUID)
                     await client.disconnect()
-                else:
-                    print("Client is not connected.")
             except Exception as e:
                 print(f"Error during cleanup: {e}")
 
@@ -136,5 +126,3 @@ try:
     loop.run_until_complete(main())
 finally:
     loop.close()
-
-
