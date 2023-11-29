@@ -24,6 +24,20 @@ services:
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=password
 
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    container_name: mosquitto
+    ports:
+      - "1883:1883" # Default MQTT port
+      - "9001:9001" # Websocket port
+    volumes:
+      - mosquitto-data:/mosquitto/data
+      - mosquitto-log:/mosquitto/log
+      - ./config:/mosquitto/config # position of mosquitto.conf
+    restart: unless-stopped
+
 volumes:
   influxdb-data:
   grafana-data:
+  mosquitto-data:
+  mosquitto-log:

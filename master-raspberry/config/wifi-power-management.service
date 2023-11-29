@@ -1,0 +1,9 @@
+[Unit]
+Description=Disable power management for wifi
+
+[Service]
+ExecStart=/sbin/iwconfig wlan0 power off
+Type=oneshot
+
+[Install]
+WantedBy=multi-user.target

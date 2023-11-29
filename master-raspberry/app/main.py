@@ -1,5 +1,5 @@
 import asyncio
-from bleak import BleakClient, BleakScanner, BleakError
+from bleak import BleakClient, BleakError
 from decouple import config
 from influxdb_client import InfluxDBClient, Point, WriteOptions
 from datetime import datetime
