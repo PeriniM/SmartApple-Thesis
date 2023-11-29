@@ -43,9 +43,6 @@ sudo systemctl daemon-reload
 sudo systemctl enable docker-compose-app.service
 sudo systemctl enable wifi-power-management.service
 
-# Change to the project directory
-cd SmartApple-Thesis
-
 # Create a Python virtual environment
 python -m venv env
 
