@@ -4,14 +4,6 @@
 sudo apt-get update
 sudo apt-get upgrade -y
 
-# Prompt the user to input their GitHub username and token
-read -p "Enter your GitHub username: " github_username
-read -sp "Enter your GitHub token: " github_token
-echo  # Add a newline after the password input
-
-# Clone the repository
-git clone https://$github_username:$github_token@github.com/PeriniM/SmartApple-Thesis.git
-
 # Prompt the user to choose whether it's for master or slave
 read -p "Is this setup for the master or a slave? (master/slave): " target
 
