@@ -43,6 +43,9 @@ sudo systemctl daemon-reload
 sudo systemctl enable docker-compose-app.service
 sudo systemctl enable wifi-power-management.service
 
+# start the services
+sudo systemctl start docker-compose-app.service
+sudo systemctl start wifi-power-management.service
 # Create a Python virtual environment
 python -m venv env
 
