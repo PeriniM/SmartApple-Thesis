@@ -24,12 +24,12 @@ sudo usermod -aG docker pi
 # Install docker-compose
 sudo apt-get install -y libffi-dev libssl-dev
 sudo apt-get install -y python python-pip
-sudo pip install docker-compose
+sudo apt-get install -y python3 docker-compose
 
-echo "Changing DNS rules..."
-# Change DNS rules
-sudo sed -i 's/#DNS=/DNS=8.8.8.8 8.8.4.4/' /etc/systemd/resolved.conf
-sudo systemctl restart systemd-resolved.service
+# echo "Changing DNS rules..."
+# # Change DNS rules
+# sudo sed -i 's/#DNS=/DNS=8.8.8.8 8.8.4.4/' /etc/systemd/resolved.conf
+# sudo systemctl restart systemd-resolved.service
 
 echo "Copying service files from $source_dir to /etc/systemd/system/"
 

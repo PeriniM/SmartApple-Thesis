@@ -4,7 +4,7 @@ Requires=docker.service
 After=docker.service
 
 [Service]
-WorkingDirectory=/home/pi/SmartApple-Thesis/master-raspberry
+WorkingDirectory=/home/pi/SmartApple-Thesis/slave-raspberry
 ExecStart=/usr/local/bin/docker-compose up
 ExecStop=/usr/local/bin/docker-compose down
 TimeoutStartSec=0
