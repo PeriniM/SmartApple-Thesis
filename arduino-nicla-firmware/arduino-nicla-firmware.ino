@@ -25,13 +25,6 @@ BLECharacteristic dataCharacteristic(BLE_SENSE_UUID("A001"), BLERead | BLENotify
 // characteristic to send the command to the device
 BLECharacteristic commandCharacteristic(BLE_SENSE_UUID("8002"), BLERead | BLEWrite, 1 * sizeof(byte)); // Array of 1 byte, command
 
-// RSSI
-int rssi = 0;
-int pastRssi = 0;
-// update the rssi every x seconds
-unsigned long lastRssiUpdate = 0;
-unsigned long refreshRateRssi = 2000;
-
 Sensor temperature(SENSOR_ID_TEMP);
 Sensor humidity(SENSOR_ID_HUM);
 Sensor pressure(SENSOR_ID_BARO);
@@ -128,24 +121,11 @@ void loop() {
         float gyroValues[3] = {gyroscope.x(), gyroscope.y(), gyroscope.z()};
         float accelValues[3] = {accelerometer.x(), accelerometer.y(), accelerometer.z()};
         float quatValues[4] = {quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()};
-        
-        if (millis() - lastRssiUpdate > refreshRateRssi){
-          rssi = BLE.rssi();
-          // if it is different from 0, update the pastRssi
-          if (rssi != 0){
-            pastRssi = rssi;
-          }
-          // if it is 0, use the pastRssi
-          else{
-            rssi = pastRssi;
-          }
-          lastRssiUpdate = millis();
-        }
-
+      
         char dataPacket[PACKET_SIZE];
         snprintf(dataPacket, sizeof(dataPacket),
-                "%d,%d,G:%.2f,%.2f,%.2f,A:%.2f,%.2f,%.2f,Q:%.2f,%.2f,%.2f,%.2f",
-                packet_id, rssi, gyroValues[0], gyroValues[1], gyroValues[2],
+                "%d,G:%.2f,%.2f,%.2f,A:%.2f,%.2f,%.2f,Q:%.2f,%.2f,%.2f,%.2f",
+                packet_id, gyroValues[0], gyroValues[1], gyroValues[2],
                 accelValues[0], accelValues[1], accelValues[2],
                 quatValues[0], quatValues[1], quatValues[2], quatValues[3]);
         dataCharacteristic.writeValue(dataPacket);
@@ -169,7 +149,6 @@ void loop() {
   else{
     // If not connected, start advertising
     BLE.advertise();
-    pastRssi = 0;
     
     // if programStatus is 1, save the data to nvram
     if (programStatus == 1){
