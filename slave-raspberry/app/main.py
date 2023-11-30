@@ -1,18 +1,19 @@
 import asyncio
-from bleak import BleakClient, BleakError
+from bleak import BleakClient, BleakError, BleakScanner
 from decouple import config
 from influxdb_client import InfluxDBClient, Point, WriteOptions
 from datetime import datetime
 import re
 
 # Precompiled regular expression pattern
-pattern = re.compile(r'(\d+),(-?\d+),G:([\d.-]+),([\d.-]+),([\d.-]+),A:([\d.-]+),([\d.-]+),([\d.-]+),Q:([\d.-]+),([\d.-]+),([\d.-]+),([\d.-]+)')
+pattern = re.compile(r'(\d+),G:([\d.-]+),([\d.-]+),([\d.-]+),A:([\d.-]+),([\d.-]+),([\d.-]+),Q:([\d.-]+),([\d.-]+),([\d.-]+),([\d.-]+)')
 
 # 0 means stop notification, 1 means start notification
 PROGRAM_COMMAND_UUID = "19b10000-8002-537e-4f6c-d104768a1214" 
 SENSORS_UUID = "19b10000-A001-537e-4f6c-d104768a1214" # UUID to read from
 
-nicla_address = "EE:DF:46:E7:08:80" # Nicla Sense Me device address
+nicla_address = ["EE:DF:46:E7:08:80", "9C:E3:E6:C9:4A:C8"]
+connected_address = None
 device_name = None
 client = None
 isStarted = False
@@ -48,12 +49,12 @@ def write_to_influxdb(measurement, data, timestamp):
     write_api.write(INFLUXDB_BUCKET, INFLUXDB_ORG, point)
 
 def notification_handler(sender: int, data: bytearray):
-    global pattern
+    global pattern, client
 
     raw_data = data.decode('utf-8')
     match = pattern.match(raw_data)
     if match:
-        packet_id, rssi, g_x, g_y, g_z, a_x, a_y, a_z, q_x, q_y, q_z, q_w = match.groups()
+        packet_id, g_x, g_y, g_z, a_x, a_y, a_z, q_x, q_y, q_z, q_w = match.groups()
         timestamp = datetime.utcnow()
         if push2influxdb:
             write_to_influxdb("movement_sensor_data", {
@@ -71,7 +72,6 @@ def notification_handler(sender: int, data: bytearray):
             }, timestamp)
         
         print(f"Packet ID: {packet_id}")
-        print(f"RSSI: {rssi}")
         print(f"Gyroscope: [{g_x}, {g_y}, {g_z}]")
         print(f"Accelerometer: [{a_x}, {a_y}, {a_z}]")
         print(f"Quaternion: [{q_x}, {q_y}, {q_z}, {q_w}]")
@@ -79,46 +79,66 @@ def notification_handler(sender: int, data: bytearray):
         print("Invalid data received:", raw_data)
 
 async def main_loop(address):
-    global isStarted, client
+    global isStarted, client, connected_address
+    isStarted = False
+    
     while True:
-        try:
-            async with BleakClient(address) as client:
-                print("Connected successfully!")
-                if not isStarted:
-                    # send a byte 1 to start the program to the command characteristic
-                    await client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
-                    await client.start_notify(SENSORS_UUID, notification_handler)
-                    isStarted = True
+        async with BleakClient(address) as client:
+            print("Connected successfully!")
+            if not isStarted:
+                # send a byte 1 to start the program to the command characteristic
+                await client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
+                await client.start_notify(SENSORS_UUID, notification_handler)
+                isStarted = True
 
-                while client.is_connected:
-                    await asyncio.sleep(1)
-
-        except BleakError as e:
-            print(f"BleakError while connecting: {e}")
-        except Exception as e:
-            print(f"Unexpected error while connecting: {e}")
-        finally:
-            print("Disconnected. Trying to reconnect...")
-            isStarted = False
-            await asyncio.sleep(0.5)
+            while client.is_connected:
+                await asyncio.sleep(0.1)
+            
+            # exit the loop if client is disconnected
+            print("Disconnected from device.")
+            connected_address = None
+            break
        
 async def main():
-    global nicla_address, client
-    try:
-        await main_loop(nicla_address)
+    global nicla_address, connected_address, client, isStarted
+    while True:
+        try:
+            # if client is not connected, scan for devices
+            if not client or not client.is_connected:
+                connected_address = None
+                print("Scanning for devices...")
+                # scan for devices
+                while not connected_address:
+                    devices = await BleakScanner.discover(1)
+                    for d in devices:
+                        if d.address in nicla_address:
+                            device_name = d.name
+                            connected_address = d.address
+                            print(f"Found {device_name} at {d.address}")
+                            await main_loop(connected_address)
+                            break
+                    else:
+                        print("No SmartApples available found.")
+        
+            if connected_address is not None:
+                await main_loop(connected_address)        
 
-    except Exception as e:
-        print(f"Unexpected error: {e}")
-    except KeyboardInterrupt:
-        print("Interrupted by user.")
-    finally:
-        print("Cleaning up...")
-        if client:
-            try:
-                if client.is_connected:
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+        except KeyboardInterrupt:
+            print("Interrupted by user.")
+        finally:
+            print("Disconnected, cleaning up...")
+            if client:
+                try:
+                    await client.stop_notify(SENSORS_UUID)
                     await client.disconnect()
-            except Exception as e:
-                print(f"Error during cleanup: {e}")
+                    client = None
+                    connected_address = None
+                    isStarted = False
+                    await asyncio.sleep(1)
+                except Exception as e:
+                    print(f"Error during cleanup: {e}")
 
 loop = asyncio.get_event_loop()
 
