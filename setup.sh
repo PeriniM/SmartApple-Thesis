@@ -10,21 +10,22 @@ read -p "Is this setup for the master or a slave? (master/slave): " target
 # Define the source and destination directories based on the user's choice
 if [[ "$target" == "master" ]]; then
     source_dir="./master-raspberry/config"
+    echo "Installing Docker and docker-compose..."
+    # Install Docker
+    curl -sSL https://get.docker.com | sh
+    sudo usermod -aG docker pi
+    # Install docker-compose
+    sudo apt-get install -y libffi-dev libssl-dev
+    sudo apt-get install -y python python-pip
+    sudo apt-get install -y python3 docker-compose
+
 elif [[ "$target" == "slave" ]]; then
     source_dir="./slave-raspberry/config"
+
 else
     echo "Invalid choice. Exiting."
     exit 1
 fi
-
-echo "Installing Docker and docker-compose..."
-# Install Docker
-curl -sSL https://get.docker.com | sh
-sudo usermod -aG docker pi
-# Install docker-compose
-sudo apt-get install -y libffi-dev libssl-dev
-sudo apt-get install -y python python-pip
-sudo apt-get install -y python3 docker-compose
 
 # echo "Changing DNS rules..."
 # # Change DNS rules
@@ -39,13 +40,23 @@ sudo cp $source_dir/*.service /etc/systemd/system/
 # Reload systemd to read the new service files
 sudo systemctl daemon-reload
 
-# enable the service to run on boot
-sudo systemctl enable docker-compose-app.service
-sudo systemctl enable wifi-power-management.service
+if [[ "$target" == "master" ]]; then
+    # enable the service to run on boot
+    sudo systemctl enable docker-compose-app.service
+    sudo systemctl enable wifi-power-management.service
 
-# start the services
-sudo systemctl start docker-compose-app.service
-sudo systemctl start wifi-power-management.service
+    # start the services
+    sudo systemctl start docker-compose-app.service
+    sudo systemctl start wifi-power-management.service
+
+elif [[ "$target" == "slave" ]]; then
+    # enable the service to run on boot
+    sudo systemctl enable wifi-power-management.service
+
+    # start the services
+    sudo systemctl start wifi-power-management.service
+fi
+
 # Create a Python virtual environment
 python -m venv env
 
