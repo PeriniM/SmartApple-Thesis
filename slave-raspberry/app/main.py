@@ -55,33 +55,32 @@ def notification_handler(sender: int, data: bytearray):
         print("Invalid data received:", raw_data)
 
 async def main_loop(address):
-    global isStarted, ble_client, connected_address
+    global isStarted, client, connected_address
     isStarted = False
     
     while True:
-        async with BleakClient(address, timeout=10) as ble_client:
+        async with BleakClient(address) as client:
             print("Connected successfully!")
             if not isStarted:
                 # send a byte 1 to start the program to the command characteristic
-                await ble_client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
-                await ble_client.start_notify(SENSORS_UUID, notification_handler)
+                await client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
+                await client.start_notify(SENSORS_UUID, notification_handler)
                 isStarted = True
 
-            while ble_client.is_connected:
+            while client.is_connected:
                 await asyncio.sleep(0.1)
             
             # exit the loop if client is disconnected
             print("Disconnected from device.")
             connected_address = None
-
             break
        
 async def main():
-    global nicla_address, connected_address, ble_client, isStarted
+    global nicla_address, connected_address, client, isStarted
     while True:
         try:
             # if client is not connected, scan for devices
-            if not ble_client or not ble_client.is_connected:
+            if not client or not client.is_connected:
                 connected_address = None
                 print("Scanning for devices...")
                 # scan for devices
@@ -92,12 +91,13 @@ async def main():
                             device_name = d.name
                             connected_address = d.address
                             print(f"Found {device_name} at {d.address}")
+                            await main_loop(connected_address)
                             break
-                    if connected_address is None:
-                        print("No SmartApples available found.")                   
+                    else:
+                        print("No SmartApples available found.")
         
             if connected_address is not None:
-                await main_loop(connected_address)  
+                await main_loop(connected_address)        
 
         except Exception as e:
             print(f"Unexpected error: {e}")
@@ -105,15 +105,20 @@ async def main():
             print("Interrupted by user.")
         finally:
             print("Disconnected, cleaning up...")
-            if ble_client:
+            if client:
                 try:
-                    await ble_client.stop_notify(SENSORS_UUID)
-                    await ble_client.disconnect()
-                    ble_client = None
+                    await client.stop_notify(SENSORS_UUID)
+                    await client.disconnect()
+                    client = None
                     connected_address = None
                     isStarted = False
                     await asyncio.sleep(1)
                 except Exception as e:
                     print(f"Error during cleanup: {e}")
 
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+
+try:
+    loop.run_until_complete(main())
+finally:
+    loop.close()
