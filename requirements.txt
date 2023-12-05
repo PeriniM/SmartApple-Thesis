@@ -6,3 +6,4 @@ python-decouple==3.8
 streamlit==1.28.2
 plotly==5.18.0
 paho-mqtt==1.6.1
+seaborn==0.13.0

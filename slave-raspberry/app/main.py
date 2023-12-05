@@ -19,7 +19,6 @@ device_name = None
 ble_client = None
 mqtt_client = None
 isStarted = False
-send2influxdb = False
 send2mqtt = True
 
 if send2mqtt:
@@ -36,35 +35,6 @@ if send2mqtt:
     else:
         print("Connected to the mqtt broker")
 
-if send2influxdb:
-    # InfluxDB Settings
-    INFLUXDB_URL = config('INFLUXDB_URL', cast=str)
-    INFLUXDB_TOKEN = config('INFLUXDB_TOKEN', cast=str)
-    INFLUXDB_ORG = config('INFLUXDB_ORG', cast=str)
-    INFLUXDB_BUCKET = config('INFLUXDB_BUCKET', cast=str)
-
-    # Setup InfluxDB client
-    influxdb_client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, debug=True, org=INFLUXDB_ORG)
-
-    # Configure batch write client
-    write_api = influxdb_client.write_api(write_options=WriteOptions(
-            batch_size=100,
-            flush_interval=10_000,
-            jitter_interval=2_000,
-            retry_interval=5_000,
-            max_retries=5,
-            max_retry_delay=30_000,
-            max_close_wait=300_000,
-            exponential_base=2
-        ))
-
-# Helper function to write to InfluxDB directly without appending
-def write_to_influxdb(measurement, data, timestamp):
-    point = Point(measurement).time(timestamp)
-    for key, value in data.items():
-        point = point.field(key, value)
-    write_api.write(INFLUXDB_BUCKET, INFLUXDB_ORG, point)
-
 # send through MQTT
 def send_to_mqtt(topic, data):
     global mqtt_client
@@ -78,28 +48,9 @@ def notification_handler(sender: int, data: bytearray):
     if match:
         packet_id, g_x, g_y, g_z, a_x, a_y, a_z, q_x, q_y, q_z, q_w = match.groups()
         timestamp = datetime.utcnow()
-        if send2influxdb:
-            write_to_influxdb("movement_sensor_data", {
-                "packet_id": int(packet_id),
-                "gyro_x": float(g_x),
-                "gyro_y": float(g_y),
-                "gyro_z": float(g_z),
-                "accel_x": float(a_x),
-                "accel_y": float(a_y),
-                "accel_z": float(a_z),
-                "quat_x": float(q_x),
-                "quat_y": float(q_y),
-                "quat_z": float(q_z),
-                "quat_w": float(q_w)
-            }, timestamp)
         if send2mqtt:
             # print(f"nicla/{connected_address}/movement_sensor_data", f"{timestamp},{packet_id},{g_x},{g_y},{g_z},{a_x},{a_y},{a_z},{q_x},{q_y},{q_z},{q_w}")
             send_to_mqtt(f"nicla/{connected_address}/movement_sensor_data", f"{timestamp},{packet_id},{g_x},{g_y},{g_z},{a_x},{a_y},{a_z},{q_x},{q_y},{q_z},{q_w}")
-        
-        # print(f"Packet ID: {packet_id}")
-        # print(f"Gyroscope: [{g_x}, {g_y}, {g_z}]")
-        # print(f"Accelerometer: [{a_x}, {a_y}, {a_z}]")
-        # print(f"Quaternion: [{q_x}, {q_y}, {q_z}, {q_w}]")
     else:
         print("Invalid data received:", raw_data)
 
@@ -108,7 +59,7 @@ async def main_loop(address):
     isStarted = False
     
     while True:
-        async with BleakClient(address, timeout=15) as ble_client:
+        async with BleakClient(address, timeout=10) as ble_client:
             print("Connected successfully!")
             if not isStarted:
                 # send a byte 1 to start the program to the command characteristic
