@@ -1,9 +1,26 @@
+import os
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+# Get current directory and file directory
+curr_dir = os.path.dirname(os.path.abspath(__file__))
+file_dir = os.path.join(curr_dir, 'acquisitions')
 # Read CSV file into a Pandas DataFrame
-df = pd.read_csv('acquisitions/melinda_plant_2023-12-05_11-58.csv')
+df = pd.read_csv(file_dir+'/melinda_plant_2023-12-05_11-58.csv')
+
+# Conversion factors from datasheet
+accel_sensitivity = 4096.0  # Sensitivity for accelerometer in LSB/g
+gyro_sensitivity = 16.4    # Sensitivity for gyroscope in LSB/°/s
+
+# Convert accelerometer and gyroscope data to standard units
+df['accel_x'] /= accel_sensitivity
+df['accel_y'] /= accel_sensitivity
+df['accel_z'] /= accel_sensitivity
+df['gyro_x'] /= gyro_sensitivity
+df['gyro_y'] /= gyro_sensitivity
+df['gyro_z'] /= gyro_sensitivity
+
 # Create a subplot with 3 rows and 1 column
 fig = make_subplots(rows=3, cols=1)
 
@@ -39,8 +56,8 @@ fig.update_xaxes(title_text='Time', row=2, col=1)
 fig.update_xaxes(title_text='Time', row=3, col=1)
 
 # Update yaxis properties
-fig.update_yaxes(title_text='Acceleration', row=1, col=1)
-fig.update_yaxes(title_text='Gyroscope', row=2, col=1)
+fig.update_yaxes(title_text='Acceleration (g)', row=1, col=1)
+fig.update_yaxes(title_text='Gyroscope (°/s)', row=2, col=1)
 fig.update_yaxes(title_text='Quaternions', row=3, col=1)
 
 # Update title and height
