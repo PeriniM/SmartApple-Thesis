@@ -21,6 +21,19 @@ df['gyro_x'] /= gyro_sensitivity
 df['gyro_y'] /= gyro_sensitivity
 df['gyro_z'] /= gyro_sensitivity
 
+# Convert '_time' to datetime
+df['_time'] = pd.to_datetime(df['_time'])
+
+# Exclude non-numeric columns from calculations
+numeric_columns = df.select_dtypes(include=['float64']).columns
+numeric_columns = numeric_columns[numeric_columns != '_time']
+
+# Calculate the average of the initial 10 rows for each numeric feature
+initial_avg = df.head(10)[numeric_columns].mean()
+
+# Subtract the average values from the corresponding columns
+df[numeric_columns] -= initial_avg
+
 # Create a subplot with 3 rows and 1 column
 fig = make_subplots(rows=3, cols=1)
 
