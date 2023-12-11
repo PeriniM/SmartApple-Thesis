@@ -149,9 +149,7 @@ const progressBar = document.getElementById('progressBar');
 const progressText = document.getElementById('progressText');
 
 let currentRow = 0;
-
-const clock = new THREE.Clock();
-let elapsedTime = 0;
+let lastTimestamp = 0;
 let newPos = 0;
 
 const cum_accel_x = [];
@@ -166,8 +164,7 @@ const cum_quat_z = [];
 const cum_quat_w = [];
 const cum_time = [];
 
-function animate() {
-  requestAnimationFrame(animate);
+function animate(timestamp) {
 
   controls.update();
 
@@ -200,21 +197,23 @@ function animate() {
         }
     }
     // Calculate elapsed time since the last frame
-    elapsedTime += clock.getDelta();
+    const elapsedTime = timestamp - lastTimestamp;
     // Check if enough time has passed based on the column 'time_diff' in the CSV file which is in seconds
     if (newPos === 1) {
-        if (elapsedTime >= (csvData[currentRow+1].time_diff)) {
-            // console.log(elapsedTime);
-            // console.log(csvData[currentRow+1].time_diff);
+
+        if (elapsedTime >= (csvData[currentRow+1].time_diff)*1000) {
+            console.log(elapsedTime);
+            console.log(csvData[currentRow+1].time_diff*1000);
         renderer.render(scene, camera);
-        elapsedTime = 0; // Reset elapsed time
+        lastTimestamp = timestamp;
         newPos = 0;
         }
     }
   }
+  requestAnimationFrame(animate);
 }
 
-// Optionally, you can update the clock in your render loop if you want to control the overall animation speed
+// update the clock in your render loop if you want to control the overall animation speed
 function render() {
   requestAnimationFrame(render);
   renderer.render(scene, camera);
