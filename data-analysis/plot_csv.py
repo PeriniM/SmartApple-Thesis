@@ -6,8 +6,9 @@ from plotly.subplots import make_subplots
 # Get current directory and file directory
 curr_dir = os.path.dirname(os.path.abspath(__file__))
 file_dir = os.path.join(curr_dir, 'acquisitions')
+file_name = 'melinda_plant_2023-12-05_11-58.csv'
 # Read CSV file into a Pandas DataFrame
-df = pd.read_csv(file_dir+'/melinda_plant_2023-12-05_11-58.csv')
+df = pd.read_csv(file_dir+'/'+file_name)
 
 # Conversion factors from datasheet
 accel_sensitivity = 4096.0  # Sensitivity for accelerometer in LSB/g
@@ -24,15 +25,25 @@ df['gyro_z'] /= gyro_sensitivity
 # Convert '_time' to datetime
 df['_time'] = pd.to_datetime(df['_time'])
 
+# add 1 hour to '_time' to convert from UTC to EST
+df['_time'] += pd.Timedelta(hours=1)
+
+# Calculate the time difference between each row and add it as a new column called 'time_diff'
+df['time_diff'] = df['_time'].diff().dt.total_seconds().fillna(0)
+
 # Exclude non-numeric columns from calculations
 numeric_columns = df.select_dtypes(include=['float64']).columns
-numeric_columns = numeric_columns[numeric_columns != '_time']
+# remove 'packet_id' and 'quat_x', 'quat_y', 'quat_z', 'quat_w' from numeric_columns
+numeric_columns = numeric_columns.drop(['packet_id', 'quat_x', 'quat_y', 'quat_z', 'quat_w', 'time_diff'])
 
 # Calculate the average of the initial 10 rows for each numeric feature
 initial_avg = df.head(10)[numeric_columns].mean()
 
 # Subtract the average values from the corresponding columns
 df[numeric_columns] -= initial_avg
+
+# save the processed data to a new csv file
+df.to_csv(file_dir+'/processed_'+file_name, index=False)
 
 # Create a subplot with 3 rows and 1 column
 fig = make_subplots(rows=3, cols=1)
