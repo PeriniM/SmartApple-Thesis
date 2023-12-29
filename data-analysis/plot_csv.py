@@ -6,7 +6,7 @@ from plotly.subplots import make_subplots
 # Get current directory and file directory
 curr_dir = os.path.dirname(os.path.abspath(__file__))
 file_dir = os.path.join(curr_dir, 'acquisitions')
-file_name = 'melinda_plant_2023-12-05_11-58.csv'
+file_name = 'dropSofa_laptop_2023-12-27_16-27-21.csv'
 # Read CSV file into a Pandas DataFrame
 df = pd.read_csv(file_dir+'/'+file_name)
 
@@ -34,7 +34,7 @@ df['time_diff'] = df['_time'].diff().dt.total_seconds().fillna(0)
 # Exclude non-numeric columns from calculations
 numeric_columns = df.select_dtypes(include=['float64']).columns
 # remove 'packet_id' and 'quat_x', 'quat_y', 'quat_z', 'quat_w' from numeric_columns
-numeric_columns = numeric_columns.drop(['packet_id', 'quat_x', 'quat_y', 'quat_z', 'quat_w', 'time_diff'])
+numeric_columns = numeric_columns.drop(['quat_x', 'quat_y', 'quat_z', 'quat_w', 'time_diff'])
 
 # Calculate the average of the initial 10 rows for each numeric feature
 initial_avg = df.head(10)[numeric_columns].mean()
