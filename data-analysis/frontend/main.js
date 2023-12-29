@@ -200,17 +200,26 @@ function animate(timestamp) {
     const elapsedTime = timestamp - lastTimestamp;
     // Check if enough time has passed based on the column 'time_diff' in the CSV file which is in seconds
     if (newPos === 1) {
-
-        if (elapsedTime >= (csvData[currentRow+1].time_diff)*1000) {
-            console.log(elapsedTime);
-            console.log(csvData[currentRow+1].time_diff*1000);
-        renderer.render(scene, camera);
-        lastTimestamp = timestamp;
-        newPos = 0;
+        // if time_diff column exists
+        if (csvData[currentRow+1].time_diff) {
+            if (elapsedTime >= (csvData[currentRow+1].time_diff)*1000) {
+                console.log(elapsedTime);
+                console.log(csvData[currentRow+1].time_diff*1000);
+                renderer.render(scene, camera);
+                lastTimestamp = timestamp;
+                newPos = 0;
+            }
+        }
+        else {
+            if (elapsedTime >= (0.01)*1000) {
+                renderer.render(scene, camera);
+                lastTimestamp = timestamp;
+                newPos = 0;
+            }
         }
     }
-  }
-  requestAnimationFrame(animate);
+   }
+   requestAnimationFrame(animate);
 }
 
 // update the clock in your render loop if you want to control the overall animation speed
@@ -242,37 +251,55 @@ function updatePlotly(data, currentRecord) {
         x: cum_time,
         y: cum_accel_x,
         name: 'accel_x',
-        type: 'scatter'
+        type: 'scatter',
+        line: {
+            color: 'red' // Add color to accel_x signal
+        }
     };
     const accel_y = {
         x: cum_time,
         y: cum_accel_y,
         name: 'accel_y',
-        type: 'scatter'
+        type: 'scatter',
+        line: {
+            color: 'green' // Add color to accel_y signal
+        }
     };
     const accel_z = {
         x: cum_time,
         y: cum_accel_z,
         name: 'accel_z',
-        type: 'scatter'
+        type: 'scatter',
+        line: {
+            color: 'blue' // Add color to accel_z signal
+        }
     };
     const gyro_x = {
         x: cum_time,
         y: cum_gyro_x,
         name: 'gyro_x',
-        type: 'scatter'
+        type: 'scatter',
+        line: {
+            color: 'red' // Add color to gyro_x signal
+        }
     };
     const gyro_y = {
         x: cum_time,
         y: cum_gyro_y,
         name: 'gyro_y',
-        type: 'scatter'
+        type: 'scatter',
+        line: {
+            color: 'green' // Add color to gyro_y signal
+        }
     };
     const gyro_z = {
         x: cum_time,
         y: cum_gyro_z,
         name: 'gyro_z',
-        type: 'scatter'
+        type: 'scatter',
+        line: {
+            color: 'blue' // Add color to gyro_z signal
+        }
     };
     const quat_x = {
         x: cum_time,

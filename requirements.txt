@@ -8,3 +8,4 @@ plotly==5.18.0
 paho-mqtt==1.6.1
 seaborn==0.13.0
 plotly==5.18.0
+scipy==1.10.1

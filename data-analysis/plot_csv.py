@@ -5,8 +5,8 @@ from plotly.subplots import make_subplots
 
 # Get current directory and file directory
 curr_dir = os.path.dirname(os.path.abspath(__file__))
-file_dir = os.path.join(curr_dir, 'acquisitions')
-file_name = 'dropSofa_laptop_2023-12-27_16-27-21.csv'
+file_dir = os.path.join(curr_dir, 'acquisitions/synthetic_test')
+file_name = 'throwing_xyz_2023-12-29_16-15-25.csv'
 # Read CSV file into a Pandas DataFrame
 df = pd.read_csv(file_dir+'/'+file_name)
 
