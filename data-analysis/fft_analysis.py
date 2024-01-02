@@ -4,6 +4,8 @@ import seaborn as sns
 import numpy as np
 from scipy.signal import welch
 import os
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.tri as tri
 
 # get absolute path of the current directory
 curr_dir = os.path.dirname(os.path.abspath(__file__))
