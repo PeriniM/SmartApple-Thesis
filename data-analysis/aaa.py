@@ -9,7 +9,7 @@ import io
 app = dash.Dash(__name__)
 
 df = None
-current_time = None
+selected_row = None
 
 # Layout of the app
 app.layout = html.Div([
@@ -28,7 +28,8 @@ app.layout = html.Div([
             max=100,
             step=1,
             value=20,
-            marks={i: str(i) for i in range(10, 101, 10)}
+            marks={i: str(i) for i in range(10, 101, 10)},
+            updatemode='drag'  # update while dragging
         )
     ], style={'width': '49%', 'display': 'inline-block', 'vertical-align': 'top'}),
     html.Div([
@@ -39,7 +40,8 @@ app.layout = html.Div([
             max=1,  # Updated based on the data
             value=0,
             step=0.01,
-            marks={0: '0', 1: '1'}  # This will be updated with actual timestamps
+            marks={0: '0', 1: '1'},  # This will be updated with actual timestamps
+            updatemode='drag'  # update while dragging
         )
     ], style={'width': '49%', 'display': 'inline-block', 'vertical-align': 'top'})
 ])
@@ -57,7 +59,7 @@ app.layout = html.Div([
      State('acceleration-plot', 'figure')]
 )
 def update_output(contents, sphere_resolution, time_slider_value, filename, existing_accel_figure):
-    global df, current_time
+    global df, selected_row
     ctx = callback_context
 
     # Process the CSV file upload
@@ -90,12 +92,8 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, exis
             # Update time slider max and marks
             max_time = (len(df['_time']) - 1)
             max_time_seconds = (len(df['_time']) - 1) * 0.01  # 0.01s time step
-            # update the marks only with minute and second values
-            marks = {}
-            for i in range(0, max_time + 1, 100):
-                time = df['_time'].iloc[i]
-                marks[i] = f'{time.minute:02}:{time.second:02}'
-            marks[max_time] = f'{df["_time"].iloc[max_time].minute:02}:{df["_time"].iloc[max_time].second:02}'
+            # set max time slider value to max_time_seconds
+            marks = {i: str(round(i, 2)) for i in np.linspace(0, max_time_seconds, 11)}
 
             return sphere_figure, accel_figure, max_time_seconds, marks
 
@@ -120,29 +118,39 @@ def update_acceleration_plot(df, time_slider_value):
 
     # Determine the row index based on the slider value
     time_step = 0.01  # Time step in seconds
-    print(f'time_slider_value: {time_slider_value}')
-    row_index = int(round(time_slider_value / time_step))
+    row_index = int(time_slider_value / time_step)
     row_index = min(row_index, len(df) - 1)  # Ensure the index doesn't exceed the DataFrame length
 
-    # Get the timestamp at the determined row
+    # Get the timestamp and acceleration values at the determined row
     current_time = df['_time'].iloc[row_index]
+    accel_x_value = df['accel_x'].iloc[row_index]
+    accel_y_value = df['accel_y'].iloc[row_index]
+    accel_z_value = df['accel_z'].iloc[row_index]
 
-    # Add a vertical line
+    # Add a scatter point for each acceleration trace at the current time
+    accel_figure.add_trace(go.Scatter(x=[current_time], y=[accel_x_value],
+                                      mode='markers', marker=dict(color='blue', size=10),
+                                      showlegend=False))
+    accel_figure.add_trace(go.Scatter(x=[current_time], y=[accel_y_value],
+                                      mode='markers', marker=dict(color='red', size=10),
+                                      showlegend=False))
+    accel_figure.add_trace(go.Scatter(x=[current_time], y=[accel_z_value],
+                                      mode='markers', marker=dict(color='green', size=10),
+                                      showlegend=False))
+
+    # Add a vertical line to indicate the current time
     accel_figure.add_shape(
         type='line',
-        x0=current_time,
-        y0=-max(df['accel_x'].max(), df['accel_y'].max(), df['accel_z'].max()),
-        x1=current_time,
-        y1=max(df['accel_x'].max(), df['accel_y'].max(), df['accel_z'].max()),
-        line=dict(
-            color='Red',
-            width=2
-        )
+        x0=current_time, y0=min(df['accel_x'].min(), df['accel_y'].min(), df['accel_z'].min()),
+        x1=current_time, y1=max(df['accel_x'].max(), df['accel_y'].max(), df['accel_z'].max()),
+        line=dict(color='grey', width=1, dash='dot'),
+        layer="below"
     )
 
     return accel_figure
 
 def update_sphere(resolution):
+
     # Sphere parameters
     radius = 1
     theta = np.linspace(0, 2 * np.pi, resolution)
@@ -215,7 +223,7 @@ def update_sphere(resolution):
             name=f'{k}-axis'
         )
         axis_traces.append(axis_trace)
-
+    
     # Add axis_traces to the data list
     data = [mesh] + axis_traces
     # Create the figure with the layout and mesh data
