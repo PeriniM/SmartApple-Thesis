@@ -9,7 +9,7 @@ import io
 app = dash.Dash(__name__)
 
 df = None
-selected_row = None
+selected_row = 0
 
 # Layout of the app
 app.layout = html.Div([
@@ -59,7 +59,7 @@ app.layout = html.Div([
      State('acceleration-plot', 'figure')]
 )
 def update_output(contents, sphere_resolution, time_slider_value, filename, existing_accel_figure):
-    global df, selected_row
+    global df
     ctx = callback_context
 
     # Process the CSV file upload
@@ -80,8 +80,21 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, exis
             # interpolate the data to fill in missing values
             df = df.interpolate(method='linear', limit_direction='both')
             df['magnitude'] = np.sqrt(df['accel_x']**2 + df['accel_y']**2 + df['accel_z']**2)
-            critical_accel = 2.0
-            df['normalized_magnitude'] = np.clip(df['magnitude'], 0, critical_accel) / critical_accel
+            critical_accel = 0.1  # 0.5g
+            df['critical_magnitude'] = np.clip(df['magnitude'], 0, critical_accel) / critical_accel
+
+           # Handle the case where magnitude is zero to avoid division by zero
+            mask = df['magnitude'] != 0
+
+            # Normalize the acceleration values only where magnitude is non-zero
+            df.loc[mask, 'norm_accel_x'] = df.loc[mask, 'accel_x'] / df.loc[mask, 'magnitude']
+            df.loc[mask, 'norm_accel_y'] = df.loc[mask, 'accel_y'] / df.loc[mask, 'magnitude']
+            df.loc[mask, 'norm_accel_z'] = df.loc[mask, 'accel_z'] / df.loc[mask, 'magnitude']
+
+            # Where magnitude is zero, set normalized accelerations to zero
+            df.loc[~mask, 'norm_accel_x'] = 0
+            df.loc[~mask, 'norm_accel_y'] = 0
+            df.loc[~mask, 'norm_accel_z'] = 0
 
             # Sphere plot
             sphere_figure = update_sphere(sphere_resolution)
@@ -98,18 +111,17 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, exis
             return sphere_figure, accel_figure, max_time_seconds, marks
 
     # Update sphere resolution
-    elif ctx.triggered and ctx.triggered[0]['prop_id'] == 'sphere-resolution-slider.value':
+    elif ctx.triggered and ctx.triggered[0]['prop_id'] == 'sphere-resolution-slider.value' or \
+            ctx.triggered and ctx.triggered[0]['prop_id'] == 'time-slider.value':
+        
         sphere_figure = update_sphere(sphere_resolution)
-        return sphere_figure, dash.no_update, dash.no_update, dash.no_update
-
-    # Update acceleration plot based on time slider
-    elif ctx.triggered and ctx.triggered[0]['prop_id'] == 'time-slider.value':
         accel_figure = update_acceleration_plot(df, time_slider_value)
-        return dash.no_update, accel_figure, dash.no_update, dash.no_update
+        return sphere_figure, accel_figure, dash.no_update, dash.no_update
 
     raise dash.exceptions.PreventUpdate
 
 def update_acceleration_plot(df, time_slider_value):
+    global selected_row
     # Acceleration plot
     accel_figure = go.Figure()
     accel_figure.add_trace(go.Scatter(x=df['_time'], y=df['accel_x'], mode='lines', name='Accel X'))
@@ -121,6 +133,7 @@ def update_acceleration_plot(df, time_slider_value):
     row_index = int(time_slider_value / time_step)
     row_index = min(row_index, len(df) - 1)  # Ensure the index doesn't exceed the DataFrame length
 
+    selected_row = row_index
     # Get the timestamp and acceleration values at the determined row
     current_time = df['_time'].iloc[row_index]
     accel_x_value = df['accel_x'].iloc[row_index]
@@ -150,7 +163,7 @@ def update_acceleration_plot(df, time_slider_value):
     return accel_figure
 
 def update_sphere(resolution):
-
+    global selected_row, df
     # Sphere parameters
     radius = 1
     theta = np.linspace(0, 2 * np.pi, resolution)
@@ -168,6 +181,9 @@ def update_sphere(resolution):
     # Create a triangulation of the sphere's surface
     triangles = []
 
+    # Initialize a list to keep track of the closest triangles and their distances
+    closest_triangles = []
+
     # Loop over the theta and phi angles
     for i in range(len(theta) - 1):
         for j in range(len(phi) - 1):
@@ -175,13 +191,31 @@ def update_sphere(resolution):
             triangles.append([i * len(phi) + j, (i + 1) * len(phi) + j, i * len(phi) + (j + 1)])
             triangles.append([(i + 1) * len(phi) + j, (i + 1) * len(phi) + (j + 1), i * len(phi) + (j + 1)])
 
+            # Calculate the distance between the current point and the normalized acceleration vector
+            dist = np.sqrt((df['norm_accel_x'].iloc[selected_row] - x[i][j])**2 +
+                        (df['norm_accel_y'].iloc[selected_row] - y[i][j])**2 +
+                        (df['norm_accel_z'].iloc[selected_row] - z[i][j])**2)
+
+            # Append the triangle index and its distance to the list
+            idx_triangle = len(triangles) - 2
+            closest_triangles.append((idx_triangle, dist))
+
+
+    # Sort the list by distance and get the top N triangles
+    number_closest_triangles = int(df["critical_magnitude"].iloc[selected_row] * 100)
+
+    closest_triangles.sort(key=lambda x: x[1])
+    top_triangles = [idx for idx, _ in closest_triangles[:number_closest_triangles]]
+
     # Convert to a numpy array
     triangles = np.array(triangles)
 
-    # Generate a random color for each triangle
-    face_colors = np.random.choice(range(256), size=(triangles.shape[0], 3))
-    face_colors = ['rgb({},{},{})'.format(r, g, b) for r, g, b in face_colors]
-
+    # Initialize face colors and set the top N triangles to a shade of red
+    face_colors = ['yellow'] * len(triangles)
+    for idx in top_triangles:
+        # color_intensity = int((1 - df["critical_magnitude"].iloc[selected_row]) * 255)
+        color_intensity = 255
+        face_colors[idx] = f'rgb({color_intensity}, 0, 0)'
     # Create the mesh object
     mesh = go.Mesh3d(
         x=x_flat,
@@ -195,7 +229,7 @@ def update_sphere(resolution):
 
     # Define the layout for the plot
     layout = go.Layout(
-        title='Randomly Colored Sphere',
+        title='Acceleration Sphere',
         scene=dict(
             xaxis=dict(title='X'),
             yaxis=dict(title='Y'),
