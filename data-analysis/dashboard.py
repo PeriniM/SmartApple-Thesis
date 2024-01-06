@@ -55,7 +55,7 @@ app.layout = html.Div([
             min=10,
             max=1000,
             step=10,
-            value=50,
+            value=100,
             marks={i: str(i) for i in range(10, 1001, 100)},
         )
     ], style={'width': '49%', 'display': 'inline-block', 'vertical-align': 'top'}),
@@ -191,7 +191,24 @@ def update_deformation_plot(df, time_slider_value):
     global selected_row
     # Deformation plot
     deformation_figure = go.Figure()
-    deformation_figure.add_trace(go.Scatter(x=df['_time'], y=df['Deformation (mm)'], mode='lines', name='Deformation (mm)'))
+
+    # Add the line trace
+    deformation_figure.add_trace(go.Scatter(
+        x=df['_time'],
+        y=df['Deformation (mm)'],
+        mode='lines+markers',
+        name='Deformation (mm)',
+        marker=dict(
+            size=5,
+            color=df['Deformation (mm)'],  # Set color to the deformation values
+            colorscale='Viridis',  # Color scale to use
+            colorbar=dict(title='Deformation (mm)'),
+            showscale=True
+        ),
+        line=dict(
+            color='lightgrey'
+        )
+    ))
 
     # Determine the row index based on the slider value
     time_step = 0.01  # Time step in seconds
@@ -199,14 +216,21 @@ def update_deformation_plot(df, time_slider_value):
     row_index = min(row_index, len(df) - 1)  # Ensure the index doesn't exceed the DataFrame length
 
     selected_row = row_index
-    # Get the timestamp and acceleration values at the determined row
+    # Get the timestamp and deformation values at the determined row
     current_time = df['_time'].iloc[row_index]
     deformation_value = df['Deformation (mm)'].iloc[row_index]
 
-    # Add a scatter point for each acceleration trace at the current time
-    deformation_figure.add_trace(go.Scatter(x=[current_time], y=[deformation_value],
-                                      mode='markers', marker=dict(color='blue', size=10),
-                                      showlegend=False))
+    # Add a scatter point for the current time
+    deformation_figure.add_trace(go.Scatter(
+        x=[current_time],
+        y=[deformation_value],
+        mode='markers',
+        marker=dict(
+            color='red',
+            size=5
+        ),
+        showlegend=False
+    ))
 
     # Add a vertical line to indicate the current time
     deformation_figure.add_shape(
@@ -217,18 +241,28 @@ def update_deformation_plot(df, time_slider_value):
         layer="below"
     )
 
-    # add title to layout
+    # Add title to layout
     deformation_figure.update_layout(
         title={
             'text': "Deformation Profile",
             'y':0.9,
             'x':0.5,
             'xanchor': 'center',
-            'yanchor': 'top'}
+            'yanchor': 'top'},
+        xaxis_title='Time',
+        yaxis_title='Deformation (mm)',
+        xaxis=dict(showline=True, showgrid=False, showticklabels=True, linecolor='rgb(204, 204, 204)', linewidth=2, ticks='outside', tickfont=dict(family='Arial', size=12, color='rgb(82, 82, 82)')),
+        yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=True),
+        autosize=True,
+        margin=dict(autoexpand=True, l=100, r=20, t=110),
+        showlegend=False,
+        plot_bgcolor='white'
     )
-        
 
     return deformation_figure
+
+
+
 
 def update_acceleration_plot(df, time_slider_value):
     global selected_row
