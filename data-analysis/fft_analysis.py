@@ -9,7 +9,7 @@ import matplotlib.tri as tri
 
 # get absolute path of the current directory
 curr_dir = os.path.dirname(os.path.abspath(__file__))
-file_name = 'processed_throwing_xyz_2023-12-29_16-15-25.csv'
+file_name = 'processed_throwing_xyz.csv'
 data_dir = os.path.join(curr_dir, 'acquisitions/synthetic_test/processed', file_name)
 
 # Read the CSV file and create a DataFrame
@@ -21,7 +21,7 @@ df['_time'] = pd.to_datetime(df['_time'])
 df = df.drop(['packet_id', 'time_diff'], axis=1)
 
 # resample the data to 0.01s intervals
-sample_time = '0.01S'
+sample_time = '0.04S'
 df = df.resample(sample_time, on='_time').mean()
 df = df.reset_index()
 
