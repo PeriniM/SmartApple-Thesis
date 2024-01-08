@@ -113,12 +113,17 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             # Create new stress-strain curve DataFrame
             df_stress = pd.DataFrame({'Deformation (mm)': interp_x, 'Force (N)': interp_y})
 
+            # print file name
+            # print(filename)
             content_type, content_string = contents.split(',')
             decoded = base64.b64decode(content_string)
             df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
  
             # convert the _time column to datetime for time series analysis
             df['_time'] = pd.to_datetime(df['_time'])
+
+            # drop 'action' column
+            df = df.drop(columns=['action'])
 
             # resample the data to 0.01s intervals
             sample_time = '0.01S'
