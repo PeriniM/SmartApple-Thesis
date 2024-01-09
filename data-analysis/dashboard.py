@@ -55,7 +55,7 @@ app.layout = html.Div([
             min=10,
             max=1000,
             step=10,
-            value=100,
+            value=60,
             marks={i: str(i) for i in range(10, 1001, 100)},
         )
     ], style={'width': '49%', 'display': 'inline-block', 'vertical-align': 'top'}),
