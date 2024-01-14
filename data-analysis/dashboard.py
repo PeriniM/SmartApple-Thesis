@@ -123,7 +123,8 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             df['_time'] = pd.to_datetime(df['_time'])
 
             # drop 'action' column
-            df = df.drop(columns=['action'])
+            if 'action' in df.columns:
+                df = df.drop(columns=['action'])
 
             # resample the data to 0.01s intervals
             sample_time = '0.01S'
