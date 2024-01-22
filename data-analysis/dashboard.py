@@ -140,7 +140,6 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             change_points = model.predict(n_bkps=num_zones)
             # Create an array of zone labels based on the change points
             zone_labels = np.arange(len(change_points))
-
             # Initialize a new column 'infer_zone' in the DataFrame with zeros
             df['infer_zone'] = 0
 
@@ -163,7 +162,7 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             df['magnitude'] = np.sqrt(df['accel_x']**2 + df['accel_y']**2 + df['accel_z']**2)
             critical_accel = 4.0
             df['critical_magnitude'] = np.clip(df['magnitude'], 0, critical_accel) / critical_accel
-
+            df['infer_zone'] = df['infer_zone'].astype(int)
             # Define impact thresholds for impact detection
             critical_thresholds = [1.0, 2.0, 3.0]
 
@@ -222,7 +221,7 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
         sphere_figure = update_sphere(sphere_resolution)
         accel_figure = update_acceleration_plot(df, time_slider_value)
         deformation_figure = update_deformation_plot(df, time_slider_value)
-        return sphere_figure, accel_figure, deformation_figure, dash.no_update, dash.no_update
+        return sphere_figure, accel_figure, deformation_figure, dash.no_update, dash.no_update, dash.no_update
 
     raise dash.exceptions.PreventUpdate
 
@@ -238,7 +237,7 @@ def interpolate_deformation(force_n):
 
 def update_zone_plot(df):
     # set colors [green, yellow, orange, red]
-    colors = ['green', 'yellow', 'orange', 'red']
+    colors = ['#00cc44', '#ffd633', '#ffa31a', '#ff3333']
 
     # plot histogram of the impact for each zone, zones are the x axis and the impact is the y axis
     fig = px.histogram(
@@ -252,6 +251,10 @@ def update_zone_plot(df):
         title='Impact Distribution',
         # make the bars stacked
         barmode='stack',
+        # remove the gap between bars
+        # barnorm='percent',
+        # show the counts
+        histfunc='count',
     )
 
     # add title to layout
@@ -261,7 +264,17 @@ def update_zone_plot(df):
             'y':0.9,
             'x':0.5,
             'xanchor': 'center',
-            'yanchor': 'top'}
+            'yanchor': 'top'},
+        xaxis_title='Zone',
+        yaxis_title='Impact',
+        xaxis=dict(showline=True, showgrid=False, showticklabels=True, linecolor='rgb(204, 204, 204)', linewidth=2, ticks='outside', tickfont=dict(family='Arial', size=12, color='rgb(82, 82, 82)')),
+        yaxis=dict(showgrid=False, zeroline=False, showline=False, showticklabels=True),
+        autosize=True,
+        margin=dict(autoexpand=True, l=100, r=20, t=110),
+        bargap=0.2,
+        # set x ticks
+        xaxis_tickvals=df['infer_zone'].unique(),
+
     )
 
     return fig
