@@ -23,7 +23,7 @@ df['_time'] = pd.to_datetime(df['_time'])
 df = df.drop(['packet_id', 'time_diff'], axis=1)
 
 # resample the data to 0.01s intervals
-sample_time = '0.04S'
+sample_time = '0.01S'
 df = df.resample(sample_time, on='_time').mean()
 df = df.reset_index()
 
@@ -37,9 +37,9 @@ df = df.interpolate(method='linear', limit_direction='both')
 sns.set()
 # plot accel_x, accel_y, accel_z and gyro_x, gyro_y, gyro_z in separate subplots
 fig, (ax1, ax2) = plt.subplots(2, 1)
-ax1.plot(df['_time'], df['accel_x'], label='accel_x')
-ax1.plot(df['_time'], df['accel_y'], label='accel_y')
-ax1.plot(df['_time'], df['accel_z'], label='accel_z')
+ax1.plot(df['accel_x'], label='accel_x')
+ax1.plot(df['accel_y'], label='accel_y')
+ax1.plot(df['accel_z'], label='accel_z')
 ax1.set_ylabel('Acceleration [g]')
 ax1.set_title('Acceleration')
 ax1.legend()

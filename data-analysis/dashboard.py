@@ -1,8 +1,10 @@
 import dash
 from dash import dcc, html, Input, Output, State, callback_context
 import plotly.graph_objs as go
+import plotly.express as px
 import numpy as np
 from scipy.interpolate import interp1d
+import ruptures as rpt
 import pandas as pd
 import base64
 import io
@@ -72,7 +74,7 @@ app.layout = html.Div([
     ], style={'width': '49%', 'display': 'inline-block', 'vertical-align': 'top'}),
 
     html.Div([
-        dcc.Graph(id='action-plot', style={'display': 'inline-block', 'width': '100%'}),
+        dcc.Graph(id='zone-plot', style={'display': 'inline-block', 'width': '100%'}),
     ], style={'width': '49%', 'display': 'inline-block', 'vertical-align': 'top'}),
 
     html.Div([
@@ -85,6 +87,7 @@ app.layout = html.Div([
     Output('sphere-plot', 'figure'),
     Output('acceleration-plot', 'figure'),
     Output('deformation-plot', 'figure'),
+    Output('zone-plot', 'figure'),
     Output('time-slider', 'max'),
     Output('time-slider', 'marks'),
     [Input('upload-csv', 'contents'),
@@ -126,6 +129,30 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             if 'action' in df.columns:
                 df = df.drop(columns=['action'])
 
+            # find the clusters of the zones
+            # calculate the magnitude of the acceleration and gyro
+            df['accel_mag'] = np.sqrt(df['accel_x']**2 + df['accel_y']**2 + df['accel_z']**2)
+            df['gyro_mag'] = np.sqrt(df['gyro_x']**2 + df['gyro_y']**2 + df['gyro_z']**2)
+
+            num_zones = 10
+            model = rpt.Window(model='l2').fit(df['accel_mag'].values)
+            # Predict change points. This method takes the penalty value as an argument.
+            change_points = model.predict(n_bkps=num_zones)
+            # Create an array of zone labels based on the change points
+            zone_labels = np.arange(len(change_points))
+
+            # Initialize a new column 'infer_zone' in the DataFrame with zeros
+            df['infer_zone'] = 0
+
+            # Loop through the change points and assign the appropriate zone labels
+            for i, change_point in enumerate(change_points):
+                if i == 0:
+                    df.loc[:change_point, 'infer_zone'] = zone_labels[i]
+                else:
+                    df.loc[change_points[i-1]:change_point, 'infer_zone'] = zone_labels[i]
+
+            # drop the 'accel_mag' and 'gyro_mag' columns
+            df = df.drop(columns=['accel_mag', 'gyro_mag'])
             # resample the data to 0.01s intervals
             sample_time = '0.01S'
             df = df.resample(sample_time, on='_time').mean()
@@ -136,6 +163,19 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             df['magnitude'] = np.sqrt(df['accel_x']**2 + df['accel_y']**2 + df['accel_z']**2)
             critical_accel = 4.0
             df['critical_magnitude'] = np.clip(df['magnitude'], 0, critical_accel) / critical_accel
+
+            # Define impact thresholds for impact detection
+            critical_thresholds = [1.0, 2.0, 3.0]
+
+            # Create a new column 'impact' with default value 0
+            df['impact'] = 0
+
+            # Loop through the thresholds and assign the appropriate impact values
+            for i, threshold in enumerate(critical_thresholds):
+                if i == 0:
+                    df.loc[df['magnitude'] > threshold, 'impact'] = i + 1
+                else:
+                    df.loc[df['magnitude'] > threshold, 'impact'] = i + 1
 
            # Handle the case where magnitude is zero to avoid division by zero
             mask = df['magnitude'] != 0
@@ -164,13 +204,16 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             # Deformation plot
             deformation_figure = update_deformation_plot(df, time_slider_value)
 
+            # Zone plot
+            zone_figure = update_zone_plot(df)
+
             # Update time slider max and marks
             max_time = (len(df['_time']) - 1)
             max_time_seconds = (len(df['_time']) - 1) * 0.01  # 0.01s time step
             # set max time slider value to max_time_seconds
             marks = {i: str(round(i, 2)) for i in np.linspace(0, max_time_seconds, 11)}
 
-            return sphere_figure, accel_figure, deformation_figure, max_time_seconds, marks
+            return sphere_figure, accel_figure, deformation_figure, zone_figure, max_time_seconds, marks
 
     # Update sphere resolution
     elif ctx.triggered and ctx.triggered[0]['prop_id'] == 'sphere-resolution-slider.value' or \
@@ -192,6 +235,36 @@ def interpolate_deformation(force_n):
         return df_stress['Deformation (mm)'].max()
     else:
         return np.interp(force_n, df_stress['Force (N)'], df_stress['Deformation (mm)'])
+
+def update_zone_plot(df):
+    # set colors [green, yellow, orange, red]
+    colors = ['green', 'yellow', 'orange', 'red']
+
+    # plot histogram of the impact for each zone, zones are the x axis and the impact is the y axis
+    fig = px.histogram(
+        df,
+        x='infer_zone',
+        y='impact',
+        color='impact',
+        color_discrete_sequence=colors,
+        # nbins=len(df['infer_zone'].unique()),
+        labels={'infer_zone': 'Zone', 'impact': 'Impact'},
+        title='Impact Distribution',
+        # make the bars stacked
+        barmode='stack',
+    )
+
+    # add title to layout
+    fig.update_layout(
+        title={
+            'text': "Impact Distribution",
+            'y':0.9,
+            'x':0.5,
+            'xanchor': 'center',
+            'yanchor': 'top'}
+    )
+
+    return fig
 
 def update_deformation_plot(df, time_slider_value):
     global selected_row
@@ -266,9 +339,6 @@ def update_deformation_plot(df, time_slider_value):
     )
 
     return deformation_figure
-
-
-
 
 def update_acceleration_plot(df, time_slider_value):
     global selected_row
