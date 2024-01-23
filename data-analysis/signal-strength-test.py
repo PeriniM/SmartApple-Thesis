@@ -82,33 +82,81 @@ if __name__ == "__main__":
         scan_plot() # Plot the results
 
     if display_flag:
-        data = pd.read_csv(os.path.join(save_dir, 'signal_strenth_test.csv'))
+        data = pd.read_csv(os.path.join(save_dir, 'signal_strength_test-all.csv'))
         # convert timestamp column to datetime
         data['timestamp'] = pd.to_datetime(data['timestamp'])
 
         # Converting the distance column to integers
         data['distance'] = data['distance'].astype(int)
 
+        # Calculating the time difference between each reading
+        data['time_diff'] = data.groupby(['distance', 'type'])['timestamp'].diff().dt.total_seconds()
+
+        # Calculating the average time difference for each type at each distance
+        avg_time_diff = data.groupby(['distance', 'type'])['time_diff'].mean().reset_index()
+
+        # sort by type
+        data = data.sort_values(by=['type'])
         # Calculating the mean RSSI for each distance and type
         mean_rssi = data.groupby(['distance', 'type']).rssi.mean().reset_index()
 
-        print(data)
+        # Getting unique types and distances for plotting
+        types = avg_time_diff['type'].unique()
+        distances = avg_time_diff['distance'].unique()
+
+        palette = sns.color_palette("colorblind", len(types))
+
         # Plotting the scatter plot and the line plot
         plt.figure(figsize=(12, 6))
 
         # Scatter plot
-        sns.scatterplot(x='distance', y='rssi', hue='type', data=data, alpha=0.2)
+        sns.scatterplot(x='distance', y='rssi', palette=palette, hue='type', data=data, legend=False, alpha=0.3, s=20)
 
         # Line plot for mean values
-        sns.lineplot(x='distance', y='rssi', hue='type', data=mean_rssi, legend=False, lw=2)
+        sns.lineplot(x='distance', y='rssi', palette=palette, hue='type', data=mean_rssi, legend=True)
 
         # Adding titles and labels
-        plt.title('BLE Signal Strength vs Distance with Mean RSSI Lines')
-        plt.xlabel('Distance')
+        plt.title('BLE RSSI vs Distance')
+        plt.xlabel('Distance (m)')
         plt.ylabel('RSSI (dBm)')
 
         # x-ticks should be integers
         plt.xticks(list(range(0, 21, 2)))
+        plt.legend(loc='upper right')
+        # Show the plot
+        plt.show()
+
+        # Creating the histogram grouped by type for each distance
+        plt.figure(figsize=(12, 6))
+
+        # Setting the width of the bars
+        bar_width = 0.2
+
+        # Enumerating over distances for grouping
+        for i, d in enumerate(distances):
+            for j, t in enumerate(types):
+                # Compute the position for each bar
+                bar_position = i - (len(types) / 2) * bar_width + j * bar_width
+
+                # Extracting time difference for each type at this distance
+                time_diff = avg_time_diff[(avg_time_diff['type'] == t) & (avg_time_diff['distance'] == d)]['time_diff'].values
+                time_diff = time_diff[0] if len(time_diff) > 0 else 0
+
+                # Plotting the bar
+                plt.bar(bar_position, time_diff, width=bar_width, color=palette[j], label=t if i == 0 else "")
+
+        # Adding titles and labels
+        plt.title('BLE RSSI Time Interval vs Distance')
+        plt.xlabel('Distance (m)')
+        plt.ylabel('Average Time Interval (s)')
+
+        # Setting the x-ticks to be the center of the group of bars for each distance
+        plt.xticks([r for r in range(len(distances))], distances)
+
+        # Adding a legend
+        plt.legend(loc='upper right')
 
         # Show the plot
         plt.show()
+
+
