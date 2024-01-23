@@ -3,6 +3,7 @@ from bleak import BleakScanner
 import matplotlib.pyplot as plt
 import datetime
 import csv
+import os
 import pandas as pd
 import seaborn as sns
 sns.set_theme(style="darkgrid")
@@ -12,6 +13,10 @@ measurements_per_distance = 10  # Number of measurements to take at each distanc
 range_dist = [0,20]
 all_rssi_values = []
 formatted_timestamp = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+
+curr_dir = os.path.dirname(os.path.abspath(__file__))
+save_dir = os.path.join(curr_dir, 'acquisitions')
+
 csv_filename = f"measurements_{formatted_timestamp}.csv"
 
 display_flag = True
@@ -34,7 +39,8 @@ async def scan_for_distance(distance):
 def save_to_csv(filename, distance):
     mode = "a" if distance != 0 else "w"  # Append if it's not the first distance, else write a new file
 
-    with open(filename, mode, newline='') as file:
+    save_path = os.path.join(save_dir, filename)
+    with open(save_path, mode, newline='') as file:
         writer = csv.writer(file)
         
         # Write the header only if it's the first distance
@@ -76,7 +82,7 @@ if __name__ == "__main__":
         scan_plot() # Plot the results
 
     if display_flag:
-        data = pd.read_csv('signal_strenth_test.csv')
+        data = pd.read_csv(os.path.join(save_dir, 'signal_strenth_test.csv'))
         # convert timestamp column to datetime
         data['timestamp'] = pd.to_datetime(data['timestamp'])
 
