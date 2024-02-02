@@ -7,7 +7,7 @@ import numpy as np
 curr_dir = os.path.dirname(os.path.abspath(__file__))
 file_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/raw')
 processed_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/processed')
-file_name = '5_apple_plant_2024-01-26.csv'
+file_name = '9_smallapple_plant_2024-01-26.csv'
 # Read CSV file into a Pandas DataFrame
 df = pd.read_csv(file_dir+'/'+file_name)
 
@@ -46,7 +46,7 @@ numeric_columns = numeric_columns.drop(['quat_x', 'quat_y', 'quat_z', 'quat_w', 
 # df['accel_y'] += 1.0
 # df['accel_z'] -= 0.18
 # save the processed data to a new csv file
-df.to_csv(processed_dir+'/processed_'+file_name, index=False)
+# df.to_csv(processed_dir+'/processed_'+file_name, index=False)
 
 # Create a subplot with 3 rows and 1 column
 fig = make_subplots(rows=3, cols=1)
