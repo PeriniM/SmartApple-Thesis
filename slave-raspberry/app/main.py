@@ -1,7 +1,6 @@
 import asyncio
-from bleak import BleakClient, BleakError, BleakScanner
+from bleak import BleakClient, BleakScanner
 from decouple import config
-from influxdb_client import InfluxDBClient, Point, WriteOptions
 import paho.mqtt.client as paho
 from datetime import datetime
 import re
@@ -55,19 +54,19 @@ def notification_handler(sender: int, data: bytearray):
         print("Invalid data received:", raw_data)
 
 async def main_loop(address):
-    global isStarted, client, connected_address
+    global isStarted, ble_client, connected_address
     isStarted = False
     
     while True:
-        async with BleakClient(address) as client:
+        async with BleakClient(address) as ble_client:
             print("Connected successfully!")
             if not isStarted:
                 # send a byte 1 to start the program to the command characteristic
-                await client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
-                await client.start_notify(SENSORS_UUID, notification_handler)
+                await ble_client.write_gatt_char(PROGRAM_COMMAND_UUID, bytearray([1]))
+                await ble_client.start_notify(SENSORS_UUID, notification_handler)
                 isStarted = True
 
-            while client.is_connected:
+            while ble_client.is_connected:
                 await asyncio.sleep(0.1)
             
             # exit the loop if client is disconnected
@@ -76,11 +75,11 @@ async def main_loop(address):
             break
        
 async def main():
-    global nicla_address, connected_address, client, isStarted
+    global nicla_address, connected_address, ble_client, isStarted
     while True:
         try:
             # if client is not connected, scan for devices
-            if not client or not client.is_connected:
+            if not ble_client or not ble_client.is_connected:
                 connected_address = None
                 print("Scanning for devices...")
                 # scan for devices
@@ -105,11 +104,11 @@ async def main():
             print("Interrupted by user.")
         finally:
             print("Disconnected, cleaning up...")
-            if client:
+            if ble_client:
                 try:
-                    await client.stop_notify(SENSORS_UUID)
-                    await client.disconnect()
-                    client = None
+                    await ble_client.stop_notify(SENSORS_UUID)
+                    await ble_client.disconnect()
+                    ble_client = None
                     connected_address = None
                     isStarted = False
                     await asyncio.sleep(1)
