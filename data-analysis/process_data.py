@@ -2,12 +2,18 @@ import os
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-import numpy as np
+
 # Get current directory and file directory
 curr_dir = os.path.dirname(os.path.abspath(__file__))
-file_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/raw')
-processed_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/processed')
-file_name = '9_smallapple_plant_2024-01-26.csv'
+date_folder = '20231205'
+file_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/raw/', date_folder)
+processed_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/processed', date_folder)
+
+# Create the processed directory if it does not exist
+if not os.path.exists(processed_dir):
+    os.makedirs(processed_dir)
+
+file_name = 'apple1_test1.csv'
 # Read CSV file into a Pandas DataFrame
 df = pd.read_csv(file_dir+'/'+file_name)
 
@@ -37,16 +43,8 @@ numeric_columns = df.select_dtypes(include=['float64']).columns
 # remove 'packet_id' and 'quat_x', 'quat_y', 'quat_z', 'quat_w' from numeric_columns
 numeric_columns = numeric_columns.drop(['quat_x', 'quat_y', 'quat_z', 'quat_w', 'time_diff'])
 
-# Calculate the average of the initial 10 rows for each numeric feature
-# initial_avg = df.head(10)[numeric_columns].mean()
-# print(initial_avg)
-# Subtract the average values for gravity compensation
-# df[numeric_columns] -= initial_avg
-# df['accel_x'] -= 0.5
-# df['accel_y'] += 1.0
-# df['accel_z'] -= 0.18
 # save the processed data to a new csv file
-# df.to_csv(processed_dir+'/processed_'+file_name, index=False)
+df.to_csv(processed_dir +'/'+ file_name, index=False)
 
 # Create a subplot with 3 rows and 1 column
 fig = make_subplots(rows=3, cols=1)
@@ -57,13 +55,13 @@ accel_dropdown = [dict(label='X direction', method='update', args=[{'visible': [
                   dict(label='Z direction', method='update', args=[{'visible': [False, False, True, False, False, True, False, False, True]}, {'title': 'Z direction'}])]
 
 # Add traces for each sensor type
-fig.add_trace(go.Scatter(y=df['accel_x'], mode='lines', name='accel_x', visible=True, connectgaps=False), row=1, col=1)
-fig.add_trace(go.Scatter(y=df['accel_y'], mode='lines', name='accel_y', visible=True, connectgaps=False), row=1, col=1)
-fig.add_trace(go.Scatter(y=df['accel_z'], mode='lines', name='accel_z', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_x'], mode='lines', name='accel_x', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_y'], mode='lines', name='accel_y', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_z'], mode='lines', name='accel_z', visible=True, connectgaps=False), row=1, col=1)
 
-fig.add_trace(go.Scatter(y=df['gyro_x'], mode='lines', name='gyro_x', visible=True, connectgaps=False), row=2, col=1)
-fig.add_trace(go.Scatter(y=df['gyro_y'], mode='lines', name='gyro_y', visible=True, connectgaps=False), row=2, col=1)
-fig.add_trace(go.Scatter(y=df['gyro_z'], mode='lines', name='gyro_z', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_x'], mode='lines', name='gyro_x', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_y'], mode='lines', name='gyro_y', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_z'], mode='lines', name='gyro_z', visible=True, connectgaps=False), row=2, col=1)
 
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_x'], mode='lines', name='quat_x', visible=True, connectgaps=False), row=3, col=1)
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_y'], mode='lines', name='quat_y', visible=True, connectgaps=False), row=3, col=1)
