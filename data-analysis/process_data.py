@@ -44,7 +44,7 @@ numeric_columns = df.select_dtypes(include=['float64']).columns
 numeric_columns = numeric_columns.drop(['quat_x', 'quat_y', 'quat_z', 'quat_w', 'time_diff'])
 
 # save the processed data to a new csv file
-df.to_csv(processed_dir +'/'+ file_name, index=False)
+# df.to_csv(processed_dir +'/'+ file_name, index=False)
 
 # Create a subplot with 3 rows and 1 column
 fig = make_subplots(rows=3, cols=1)
@@ -55,13 +55,13 @@ accel_dropdown = [dict(label='X direction', method='update', args=[{'visible': [
                   dict(label='Z direction', method='update', args=[{'visible': [False, False, True, False, False, True, False, False, True]}, {'title': 'Z direction'}])]
 
 # Add traces for each sensor type
-fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_x'], mode='lines', name='accel_x', visible=True, connectgaps=False), row=1, col=1)
-fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_y'], mode='lines', name='accel_y', visible=True, connectgaps=False), row=1, col=1)
-fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_z'], mode='lines', name='accel_z', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(y=df['accel_x'], mode='lines', name='accel_x', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(y=df['accel_y'], mode='lines', name='accel_y', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(y=df['accel_z'], mode='lines', name='accel_z', visible=True, connectgaps=False), row=1, col=1)
 
-fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_x'], mode='lines', name='gyro_x', visible=True, connectgaps=False), row=2, col=1)
-fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_y'], mode='lines', name='gyro_y', visible=True, connectgaps=False), row=2, col=1)
-fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_z'], mode='lines', name='gyro_z', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(y=df['gyro_x'], mode='lines', name='gyro_x', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(y=df['gyro_y'], mode='lines', name='gyro_y', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(y=df['gyro_z'], mode='lines', name='gyro_z', visible=True, connectgaps=False), row=2, col=1)
 
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_x'], mode='lines', name='quat_x', visible=True, connectgaps=False), row=3, col=1)
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_y'], mode='lines', name='quat_y', visible=True, connectgaps=False), row=3, col=1)
