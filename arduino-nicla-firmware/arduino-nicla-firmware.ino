@@ -5,6 +5,8 @@
 #define PACKET_SIZE 130  // Define the maximum BLE packet size
 #define BLE_SENSE_UUID(val) ("19b10000-" val "-537e-4f6c-d104768a1214")
 #define SERIAL_DEBUG 1
+#define TEST_SAMPLE_RATE 1
+#define TEST_BLE_RATE 0
 
 const int VERSION = 0x00000000;
 int batteryLevel = 0;
@@ -25,6 +27,11 @@ BLECharacteristic dataCharacteristic(BLE_SENSE_UUID("A001"), BLERead | BLENotify
 // characteristic to send the command to the device
 BLECharacteristic commandCharacteristic(BLE_SENSE_UUID("8002"), BLERead | BLEWrite, 1 * sizeof(byte)); // Array of 1 byte, command
 
+// Set BLE refresh rate
+unsigned long bleLastUpdateTime = 0; // Store the last update time
+unsigned long bleRefreshRate = 30; // rate in Hz
+unsigned long bleRefreshTime = (1.0 / bleRefreshRate) * 1000;
+
 Sensor temperature(SENSOR_ID_TEMP);
 Sensor humidity(SENSOR_ID_HUM);
 Sensor pressure(SENSOR_ID_BARO);
@@ -34,29 +41,44 @@ SensorXYZ accelerometer(SENSOR_ID_ACC);
 SensorQuaternion quaternion(SENSOR_ID_RV);
 SensorBSEC bsec(SENSOR_ID_BSEC);
 
+SensorConfig cfg;
+
 // String to calculate the local and device name
 String name;
+
+// Variables to dynamically set sensor sampling rate
+unsigned long lastUpdateTime = 0; // Store the last update time
+float currentSampleRate = 400.0; // Initial sample rate in Hz
+unsigned long sampleRefreshTime = 5000; // Time in ms
+bool initialRate = true;
+
 
 void setup() {
   if (SERIAL_DEBUG){
     Serial.begin(115200);
     Serial.println("Start");
-  }
+    }
 
   nicla::begin();
   nicla::leds.begin();
   nicla::enableCharging(100);
+
+  // accelerometer.configure(currentSamplerate, 1);
 
   //Sensors initialization
   BHY2.begin(NICLA_STANDALONE);
   temperature.begin();
   humidity.begin();
   pressure.begin();
-  gyroscope.begin();
-  accelerometer.begin();
-  quaternion.begin();
+  gyroscope.begin(currentSampleRate, 1);
+  accelerometer.begin(currentSampleRate, 1);
+  quaternion.begin(currentSampleRate, 1);
   bsec.begin();
   gas.begin();
+
+  cfg = accelerometer.getConfiguration();
+  Serial.println(String("acceleration configuration - rate: ") + cfg.sample_rate + String("Hz - latency: ") + cfg.latency + String("ms - range: ") + cfg.range);
+  
 
   if (!BLE.begin()){
     if (SERIAL_DEBUG) Serial.println("Failed to initialized BLE!");
@@ -115,22 +137,59 @@ void loop() {
         startSaving = 1;
       } 
 
+      unsigned long currentTime = millis();
+
+      if (TEST_SAMPLE_RATE){
+        if (currentTime - lastUpdateTime >= sampleRefreshTime) { // Check if 5 seconds have passed
+          if (!initialRate){
+            currentSampleRate = max(currentSampleRate / 2.0, 15.0); // Halve the sample rate, but not below 15Hz
+
+            // Update the accelerometer configuration
+            gyroscope.configure(currentSampleRate, 1);
+            accelerometer.configure(currentSampleRate, 1);
+            quaternion.configure(currentSampleRate, 1);
+          }
+          cfg = accelerometer.getConfiguration();
+          Serial.println(String("Updated sample rate to: ") + cfg.sample_rate + "Hz");
+          initialRate = false;
+
+          lastUpdateTime = currentTime; // Reset the last update time
+        }
+      }
+      else if (TEST_BLE_RATE){
+        if (currentTime - lastUpdateTime >= sampleRefreshTime) { // Check if 5 seconds have passed
+          if (!initialRate){
+
+            // add 5 Hz to the ble communication
+            bleRefreshRate+=5;
+            bleRefreshRate = constrain(bleRefreshRate, 1, 30);
+            bleRefreshTime = (1.0 / bleRefreshRate) * 1000;
+          }
+          initialRate = false;
+          lastUpdateTime = currentTime; // Reset the last update time
+        }
+      }
+
+
       BHY2.update();
       if (dataCharacteristic.subscribed()){
-
-        float gyroValues[3] = {gyroscope.x(), gyroscope.y(), gyroscope.z()};
-        float accelValues[3] = {accelerometer.x(), accelerometer.y(), accelerometer.z()};
-        float quatValues[4] = {quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()};
-      
-        char dataPacket[PACKET_SIZE];
-        snprintf(dataPacket, sizeof(dataPacket),
-                "%d,G:%.2f,%.2f,%.2f,A:%.2f,%.2f,%.2f,Q:%.2f,%.2f,%.2f,%.2f",
-                packet_id, gyroValues[0], gyroValues[1], gyroValues[2],
-                accelValues[0], accelValues[1], accelValues[2],
-                quatValues[0], quatValues[1], quatValues[2], quatValues[3]);
-        dataCharacteristic.writeValue(dataPacket);
+        if (currentTime - bleLastUpdateTime >= bleRefreshTime){
+          float gyroValues[3] = {gyroscope.x(), gyroscope.y(), gyroscope.z()};
+          float accelValues[3] = {accelerometer.x(), accelerometer.y(), accelerometer.z()};
+          float quatValues[4] = {quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()};
         
-        packet_id++;
+          char dataPacket[PACKET_SIZE];
+          snprintf(dataPacket, sizeof(dataPacket),
+                  "%d,G:%.2f,%.2f,%.2f,A:%.2f,%.2f,%.2f,Q:%.2f,%.2f,%.2f,%.2f",
+                  packet_id, gyroValues[0], gyroValues[1], gyroValues[2],
+                  accelValues[0], accelValues[1], accelValues[2],
+                  quatValues[0], quatValues[1], quatValues[2], quatValues[3]);
+          dataCharacteristic.writeValue(dataPacket);
+          
+          packet_id++;
+
+          bleLastUpdateTime = currentTime;
+        }
       }
       if (strcpy(ledState, "green") != 0){
         nicla::leds.setColor(green);
