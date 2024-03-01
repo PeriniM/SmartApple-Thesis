@@ -38,6 +38,7 @@ Sensor pressure(SENSOR_ID_BARO);
 Sensor gas(SENSOR_ID_GAS);
 SensorXYZ gyroscope(SENSOR_ID_GYRO);
 SensorXYZ accelerometer(SENSOR_ID_ACC);
+SensorXYZ gravity(SENSOR_ID_GRA);
 SensorQuaternion quaternion(SENSOR_ID_RV);
 SensorBSEC bsec(SENSOR_ID_BSEC);
 
@@ -72,6 +73,7 @@ void setup() {
   pressure.begin();
   gyroscope.begin(currentSampleRate, 1);
   accelerometer.begin(currentSampleRate, 1);
+  gravity.begin(currentSampleRate, 1);
   quaternion.begin(currentSampleRate, 1);
   bsec.begin();
   gas.begin();
@@ -175,7 +177,7 @@ void loop() {
       if (dataCharacteristic.subscribed()){
         if (currentTime - bleLastUpdateTime >= bleRefreshTime){
           float gyroValues[3] = {gyroscope.x(), gyroscope.y(), gyroscope.z()};
-          float accelValues[3] = {accelerometer.x(), accelerometer.y(), accelerometer.z()};
+          float accelValues[3] = {accelerometer.x()-gravity.x(), accelerometer.y()-gravity.y(), accelerometer.z()-gravity.z()};
           float quatValues[4] = {quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w()};
         
           char dataPacket[PACKET_SIZE];
