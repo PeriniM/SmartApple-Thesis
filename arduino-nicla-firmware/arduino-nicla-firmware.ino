@@ -5,7 +5,7 @@
 #define PACKET_SIZE 130  // Define the maximum BLE packet size
 #define BLE_SENSE_UUID(val) ("19b10000-" val "-537e-4f6c-d104768a1214")
 #define SERIAL_DEBUG 1
-#define TEST_SAMPLE_RATE 1
+#define TEST_SAMPLE_RATE 0
 #define TEST_BLE_RATE 0
 
 const int VERSION = 0x00000000;

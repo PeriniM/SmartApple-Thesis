@@ -29,7 +29,7 @@ save2local = True
 file_name = None
 file_path = None
 df = None
-file_name = f"nicla_400Hz_{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+file_name = f"impacts_{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
 file_path = os.path.join(save_dir, file_name)
 df = pd.DataFrame(columns=['_time', 'packet_id', 'gyro_x', 'gyro_y', 'gyro_z', 'accel_x', 'accel_y', 'accel_z', 'quat_x', 'quat_y', 'quat_z', 'quat_w'])
 df.to_csv(file_path, header=True, index=False)

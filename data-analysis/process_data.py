@@ -5,15 +5,18 @@ from plotly.subplots import make_subplots
 
 # Get current directory and file directory
 curr_dir = os.path.dirname(os.path.abspath(__file__))
-date_folder = '20231205'
+date_folder = '20240215'
 file_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/raw/', date_folder)
 processed_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/processed', date_folder)
+
+# file_dir = os.path.join(curr_dir, 'acquisitions/synthetic_test/raw/')
+# processed_dir = os.path.join(curr_dir, 'acquisitions/synthetic_test/processed')
 
 # Create the processed directory if it does not exist
 if not os.path.exists(processed_dir):
     os.makedirs(processed_dir)
 
-file_name = 'apple1_test1.csv'
+file_name = 'impacts_2024-03-01_23-55-40.csv'
 # Read CSV file into a Pandas DataFrame
 df = pd.read_csv(file_dir+'/'+file_name)
 
@@ -44,10 +47,10 @@ numeric_columns = df.select_dtypes(include=['float64']).columns
 numeric_columns = numeric_columns.drop(['quat_x', 'quat_y', 'quat_z', 'quat_w', 'time_diff'])
 
 # save the processed data to a new csv file
-# df.to_csv(processed_dir +'/'+ file_name, index=False)
+df.to_csv(processed_dir +'/'+ file_name, index=False)
 
 # Create a subplot with 3 rows and 1 column
-fig = make_subplots(rows=3, cols=1)
+fig = make_subplots(rows=5, cols=1)
 
 # Define dropdown buttons for each sensor type
 accel_dropdown = [dict(label='X direction', method='update', args=[{'visible': [True, False, False, True, False, False, True, False, False]}, {'title': 'X direction'}]),
@@ -67,6 +70,14 @@ fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_x'], mode='lines', name='quat
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_y'], mode='lines', name='quat_y', visible=True, connectgaps=False), row=3, col=1)
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_z'], mode='lines', name='quat_z', visible=True, connectgaps=False), row=3, col=1)
 
+# plot the acceleration magnitude
+df['accel_magnitude'] = (df['accel_x']**2 + df['accel_y']**2 + df['accel_z']**2)**0.5
+fig.add_trace(go.Scatter(y=df['accel_magnitude'], mode='lines', name='accel_magnitude', visible=True, connectgaps=False), row=4, col=1)
+
+# plot gyro magnitude
+df['gyro_magnitude'] = (df['gyro_x']**2 + df['gyro_y']**2 + df['gyro_z']**2)**0.5
+fig.add_trace(go.Scatter(y=df['gyro_magnitude'], mode='lines', name='gyro_magnitude', visible=True, connectgaps=False), row=5, col=1)
+
 # Add dropdown buttons for each sensor type
 fig.update_layout(
     updatemenus=[
@@ -79,11 +90,15 @@ fig.update_layout(
 fig.update_xaxes(title_text='Time', row=1, col=1)
 fig.update_xaxes(title_text='Time', row=2, col=1)
 fig.update_xaxes(title_text='Time', row=3, col=1)
+fig.update_xaxes(title_text='Time', row=4, col=1)
+fig.update_xaxes(title_text='Time', row=5, col=1)
 
 # Update yaxis properties
 fig.update_yaxes(title_text='Acceleration (g)', row=1, col=1)
 fig.update_yaxes(title_text='Gyroscope (°/s)', row=2, col=1)
 fig.update_yaxes(title_text='Quaternions', row=3, col=1)
+fig.update_yaxes(title_text='Acceleration Magnitude (g)', row=4, col=1)
+fig.update_yaxes(title_text='Gyroscope Magnitude (°/s)', row=5, col=1)
 
 # Update title and height
 fig.update_layout(title_text='Sensor Data', height=1000)
