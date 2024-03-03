@@ -16,7 +16,7 @@ processed_dir = os.path.join(curr_dir, 'acquisitions/onsite_test/processed', dat
 if not os.path.exists(processed_dir):
     os.makedirs(processed_dir)
 
-file_name = 'impacts_2024-03-01_23-55-40.csv'
+file_name = 'apple1_rangetest_zone4.csv'
 # Read CSV file into a Pandas DataFrame
 df = pd.read_csv(file_dir+'/'+file_name)
 
@@ -58,13 +58,13 @@ accel_dropdown = [dict(label='X direction', method='update', args=[{'visible': [
                   dict(label='Z direction', method='update', args=[{'visible': [False, False, True, False, False, True, False, False, True]}, {'title': 'Z direction'}])]
 
 # Add traces for each sensor type
-fig.add_trace(go.Scatter(y=df['accel_x'], mode='lines', name='accel_x', visible=True, connectgaps=False), row=1, col=1)
-fig.add_trace(go.Scatter(y=df['accel_y'], mode='lines', name='accel_y', visible=True, connectgaps=False), row=1, col=1)
-fig.add_trace(go.Scatter(y=df['accel_z'], mode='lines', name='accel_z', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_x'], mode='lines', name='accel_x', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_y'], mode='lines', name='accel_y', visible=True, connectgaps=False), row=1, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_z'], mode='lines', name='accel_z', visible=True, connectgaps=False), row=1, col=1)
 
-fig.add_trace(go.Scatter(y=df['gyro_x'], mode='lines', name='gyro_x', visible=True, connectgaps=False), row=2, col=1)
-fig.add_trace(go.Scatter(y=df['gyro_y'], mode='lines', name='gyro_y', visible=True, connectgaps=False), row=2, col=1)
-fig.add_trace(go.Scatter(y=df['gyro_z'], mode='lines', name='gyro_z', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_x'], mode='lines', name='gyro_x', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_y'], mode='lines', name='gyro_y', visible=True, connectgaps=False), row=2, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_z'], mode='lines', name='gyro_z', visible=True, connectgaps=False), row=2, col=1)
 
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_x'], mode='lines', name='quat_x', visible=True, connectgaps=False), row=3, col=1)
 fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_y'], mode='lines', name='quat_y', visible=True, connectgaps=False), row=3, col=1)
@@ -72,11 +72,11 @@ fig.add_trace(go.Scatter(x=df['_time'], y=df['quat_z'], mode='lines', name='quat
 
 # plot the acceleration magnitude
 df['accel_magnitude'] = (df['accel_x']**2 + df['accel_y']**2 + df['accel_z']**2)**0.5
-fig.add_trace(go.Scatter(y=df['accel_magnitude'], mode='lines', name='accel_magnitude', visible=True, connectgaps=False), row=4, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['accel_magnitude'], mode='lines', name='accel_magnitude', visible=True, connectgaps=False), row=4, col=1)
 
 # plot gyro magnitude
 df['gyro_magnitude'] = (df['gyro_x']**2 + df['gyro_y']**2 + df['gyro_z']**2)**0.5
-fig.add_trace(go.Scatter(y=df['gyro_magnitude'], mode='lines', name='gyro_magnitude', visible=True, connectgaps=False), row=5, col=1)
+fig.add_trace(go.Scatter(x=df['_time'], y=df['gyro_magnitude'], mode='lines', name='gyro_magnitude', visible=True, connectgaps=False), row=5, col=1)
 
 # Add dropdown buttons for each sensor type
 fig.update_layout(
