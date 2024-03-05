@@ -134,7 +134,7 @@ def update_output(contents, sphere_resolution, time_slider_value, filename, acce
             df['accel_mag'] = np.sqrt(df['accel_x']**2 + df['accel_y']**2 + df['accel_z']**2)
             df['gyro_mag'] = np.sqrt(df['gyro_x']**2 + df['gyro_y']**2 + df['gyro_z']**2)
 
-            num_zones = 4
+            num_zones = 5
             model = rpt.Window(model='l2').fit(df['accel_mag'].values)
             # Predict change points. This method takes the penalty value as an argument.
             change_points = model.predict(n_bkps=num_zones)
