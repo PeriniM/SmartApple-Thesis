@@ -16,7 +16,7 @@ The project aims to develop a system to monitor the stress of apples during the 
     
     ```bash
     ssid: UNITN-SHIELD4US-WIFI
-    password: tvmtt97963
+    password: 
     ```
     
 - Enable SSH options and give a username and password, such as:
@@ -133,13 +133,13 @@ Sometimes the Raspberry disconnects on its own from the network when it is in id
 - the antenna must be compatible with bluetooth 5.0 to support BLE
 - disable built-in interface to use the external antenna
         
-        ```bash
-        # check built-in interface name
-        hciconfig
-        
-        # disable it to use new one
-        sudo hciconfig hci0 down
-        ```
+    ```bash
+    # check built-in interface name
+    hciconfig
+    
+    # disable it to use new one
+    sudo hciconfig hci0 down
+    ```
         
 ### Run script on boot
 
@@ -151,104 +151,104 @@ The following commands will set-up influxdb and grafana to run on boot inside a 
 
 - install docker
         
-        ```bash
-        # install docker
-        curl -sSL https://get.docker.com | sh
-        sudo usermod -aG docker pi
-        
-        # reboot
-        sudo reboot
-        
-        # install docker compose
-        # sudo apt-get install libffi-dev libssl-dev
-        # sudo apt-get install -y python python-pip
-        sudo pip install docker-compose
-        ```
+    ```bash
+    # install docker
+    curl -sSL https://get.docker.com | sh
+    sudo usermod -aG docker pi
+    
+    # reboot
+    sudo reboot
+    
+    # install docker compose
+    # sudo apt-get install libffi-dev libssl-dev
+    # sudo apt-get install -y python python-pip
+    sudo pip install docker-compose
+    ```
         
 - create the container
         
-        ```bash
-        # go inside the project folder and create the containers
-        docker-compose up -d --build
-        
-        # stop the running containers
-        docker-compose down
-        ```
+    ```bash
+    # go inside the project folder and create the containers
+    docker-compose up -d --build
+    
+    # stop the running containers
+    docker-compose down
+    ```
         
 - if you get errors while installing, you need to set up the DNS properly
         
-        ```bash
-        # Open the systemd-resolved configuration file
-        sudo nano /etc/systemd/resolved.conf
-        # uncomment the DNS line and add the google ip
-        DNS=8.8.8.8 8.8.4.4
-        # restart the service
-        sudo systemctl restart systemd-resolved
-        # to verify the new DNS conf
-        systemd-resolve --status
-        ```
+    ```bash
+    # Open the systemd-resolved configuration file
+    sudo nano /etc/systemd/resolved.conf
+    # uncomment the DNS line and add the google ip
+    DNS=8.8.8.8 8.8.4.4
+    # restart the service
+    sudo systemctl restart systemd-resolved
+    # to verify the new DNS conf
+    systemd-resolve --status
+    ```
         
 - to run on boot
         
-        ```bash
-        # create a systemd service file
-        sudo nano /etc/systemd/system/docker-compose-app.service
-        
-        # content of the file
-        [Unit]
-        Description=Docker Compose Application Service
-        Requires=docker.service
-        After=docker.service
-        
-        [Service]
-        WorkingDirectory=/home/pi/Desktop/SmartApple-Thesis
-        ExecStart=/usr/local/bin/docker-compose up
-        ExecStop=/usr/local/bin/docker-compose down
-        TimeoutStartSec=0
-        Restart=always
-        RemainAfterExit=yes
-        
-        [Install]
-        WantedBy=multi-user.target
-        
-        # reload systemd to read the new service
-        sudo systemctl daemon-reload
-        
-        # enable the service to run on boot
-        sudo systemctl enable docker-compose-app.service
-        
-        # start, stop, status service command
-        sudo systemctl start docker-compose-app.service
-        sudo systemctl stop docker-compose-app.service
-        sudo systemctl status docker-compose-app.service
-        ```
+    ```bash
+    # create a systemd service file
+    sudo nano /etc/systemd/system/docker-compose-app.service
+    
+    # content of the file
+    [Unit]
+    Description=Docker Compose Application Service
+    Requires=docker.service
+    After=docker.service
+    
+    [Service]
+    WorkingDirectory=/home/pi/Desktop/SmartApple-Thesis
+    ExecStart=/usr/local/bin/docker-compose up
+    ExecStop=/usr/local/bin/docker-compose down
+    TimeoutStartSec=0
+    Restart=always
+    RemainAfterExit=yes
+    
+    [Install]
+    WantedBy=multi-user.target
+    
+    # reload systemd to read the new service
+    sudo systemctl daemon-reload
+    
+    # enable the service to run on boot
+    sudo systemctl enable docker-compose-app.service
+    
+    # start, stop, status service command
+    sudo systemctl start docker-compose-app.service
+    sudo systemctl stop docker-compose-app.service
+    sudo systemctl status docker-compose-app.service
+    ```
         
 - if you make some changes to the docker-compose.yml
         
-        ```bash
-        # before making changes stop the service
-        sudo systemctl stop docker-compose-app.service
-        # apply changes to docker-compose file and run
-        docker-compose up -d
-        # restart systemctl service
-        sudo systemctl restart docker-compose-app.service
-        # to see if everything is good
-        docker-compose logs
-        ```
+    ```bash
+    # before making changes stop the service
+    sudo systemctl stop docker-compose-app.service
+    # apply changes to docker-compose file and run
+    docker-compose up -d
+    # restart systemctl service
+    sudo systemctl restart docker-compose-app.service
+    # to see if everything is good
+    docker-compose logs
+    ```
         
 - to stop and remove all the containers
         
-        ```bash
-        docker container stop $(docker container ls -aq)
-        docker container prune -f
-        ```
+    ```bash
+    docker container stop $(docker container ls -aq)
+    docker container prune -f
+    ```
         
 ### Set datetime
 - If not accessed to internet to set manually the time we can use:
         
-        ```bash
-        sudo date -s '2024-01-26 13:04:00’
-        ```
+    ```bash
+    sudo date -s '2024-01-26 13:04:00’
+    ```
         
 ### Run script on boot
 
@@ -285,42 +285,42 @@ The following commands will set-up influxdb and grafana to run on boot inside a 
     
 ### Install Node-RED
     
-    ```bash
-    bash <(curl -sL https://raw.githubusercontent.com/node-red/linux-installers/master/deb/update-nodejs-and-nodered)
-    # to start local server
-    node-red-pi --max-old-space-size=256
-    ```
+```bash
+bash <(curl -sL https://raw.githubusercontent.com/node-red/linux-installers/master/deb/update-nodejs-and-nodered)
+# to start local server
+node-red-pi --max-old-space-size=256
+```
     
 ### Raspberry Pi Zero W (WORKING)
 1. Install the OS
 2. Check if the bluetooth interface is available and enable BLE features
         
-        ```bash
-        # install bluetooth dependencies ([here](https://github.com/noble/noble))
-        sudo apt-get install bluetooth bluez libbluetooth-dev libudev-dev
-        # check if hci is available
-        hcitool dev
-        # check if bluetooth service is active
-        sudo systemctl status bluetooth
-        # if not, active it with
-        sudo systemctl start bluetooth
-        # open bluetooth.service file and add the --experimental flag for BLE
-        sudo nano /lib/systemd/system/bluetooth.service
-        'ExecStart=/usr/local/libexec/bluetooth/bluetoothd --experimental'
-        
-        # reload the configuration and restart the service
-        sudo systemctl daemon-reload
-        sudo systemctl restart bluetooth
-        
-        # set bluetoothd permission (found [here](https://flows.nodered.org/node/node-red-contrib-generic-ble))
-        sudo usermod -G bluetooth -a pi
-        
-        # start/stop BLE advertising without sudo (found [here](https://flows.nodered.org/node/node-red-contrib-ble-sense))
-        sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
-        
-        # reboot
-        sudo reboot
-        ```
+    ```bash
+    # install bluetooth dependencies ([here](https://github.com/noble/noble))
+    sudo apt-get install bluetooth bluez libbluetooth-dev libudev-dev
+    # check if hci is available
+    hcitool dev
+    # check if bluetooth service is active
+    sudo systemctl status bluetooth
+    # if not, active it with
+    sudo systemctl start bluetooth
+    # open bluetooth.service file and add the --experimental flag for BLE
+    sudo nano /lib/systemd/system/bluetooth.service
+    'ExecStart=/usr/local/libexec/bluetooth/bluetoothd --experimental'
+    
+    # reload the configuration and restart the service
+    sudo systemctl daemon-reload
+    sudo systemctl restart bluetooth
+    
+    # set bluetoothd permission (found [here](https://flows.nodered.org/node/node-red-contrib-generic-ble))
+    sudo usermod -G bluetooth -a pi
+    
+    # start/stop BLE advertising without sudo (found [here](https://flows.nodered.org/node/node-red-contrib-ble-sense))
+    sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
+    
+    # reboot
+    sudo reboot
+    ```
         
 3. Install Node-RED
 4. Install **node-red-contrib-ble-sense** module and **dashboard**
@@ -328,61 +328,61 @@ The following commands will set-up influxdb and grafana to run on boot inside a 
 ### Install BLE dependencies on Raspberry Pi 3 (NOT WORKING)
 - To upgrade or downgrade bluez package (guide [here](https://learn.adafruit.com/install-bluez-on-the-raspberry-pi/installation)):
         
-        ```bash
-        # install latest bluez version (check [here](http://www.bluez.org/download/))
-        cd ~
-        wget http://www.kernel.org/pub/linux/bluetooth/bluez-5.66.tar.xz
-        tar xvf bluez-5.66.tar.xz && cd bluez-5.66
-        
-        # install dependencies
-        sudo apt-get update
-        sudo apt-get install -y libusb-dev libdbus-1-dev libglib2.0-dev libudev-dev libical-dev libreadline-dev
-        
-        # set configure method
-        ./configure --enable-library
-        
-        # compile
-        make
-        
-        # install package
-        sudo make install
-        
-        # reboot
-        sudo reboot
-        
-        # make the service start from boot
-        sudo systemctl enable bluetooth
-        
-        # open bluetooth.service file and add the --experimental flag for BLE
-        sudo nano /lib/systemd/system/bluetooth.service
-        'ExecStart=/usr/local/libexec/bluetooth/bluetoothd --experimental'
-        
-        # reload the configuration and restart the service
-        sudo systemctl daemon-reload
-        sudo systemctl restart bluetooth
-        
-        # reboot
-        sudo reboot
-        ```
+    ```bash
+    # install latest bluez version (check [here](http://www.bluez.org/download/))
+    cd ~
+    wget http://www.kernel.org/pub/linux/bluetooth/bluez-5.66.tar.xz
+    tar xvf bluez-5.66.tar.xz && cd bluez-5.66
+    
+    # install dependencies
+    sudo apt-get update
+    sudo apt-get install -y libusb-dev libdbus-1-dev libglib2.0-dev libudev-dev libical-dev libreadline-dev
+    
+    # set configure method
+    ./configure --enable-library
+    
+    # compile
+    make
+    
+    # install package
+    sudo make install
+    
+    # reboot
+    sudo reboot
+    
+    # make the service start from boot
+    sudo systemctl enable bluetooth
+    
+    # open bluetooth.service file and add the --experimental flag for BLE
+    sudo nano /lib/systemd/system/bluetooth.service
+    'ExecStart=/usr/local/libexec/bluetooth/bluetoothd --experimental'
+    
+    # reload the configuration and restart the service
+    sudo systemctl daemon-reload
+    sudo systemctl restart bluetooth
+    
+    # reboot
+    sudo reboot
+    ```
         
 - To enable bluetooth:
         
-        ```bash
-        # set bluetoothd permission (found [here](https://flows.nodered.org/node/node-red-contrib-generic-ble))
-        sudo usermod -G bluetooth -a pi
-        sudo reboot
-        
-        # start/stop BLE advertising without sudo (found [here](https://flows.nodered.org/node/node-red-contrib-ble-sense))
-        sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
-        
-        # install bluetooth dependencies
-        sudo apt-get install bluetooth bluez libbluetooth-dev libudev-dev
-        
-        # check if bluetooth service is active
-        sudo systemctl status bluetooth
-        # if not, active it with
-        sudo systemctl start bluetooth
-        ```
+    ```bash
+    # set bluetoothd permission (found [here](https://flows.nodered.org/node/node-red-contrib-generic-ble))
+    sudo usermod -G bluetooth -a pi
+    sudo reboot
+    
+    # start/stop BLE advertising without sudo (found [here](https://flows.nodered.org/node/node-red-contrib-ble-sense))
+    sudo setcap cap_net_raw+eip $(eval readlink -f `which node`)
+    
+    # install bluetooth dependencies
+    sudo apt-get install bluetooth bluez libbluetooth-dev libudev-dev
+    
+    # check if bluetooth service is active
+    sudo systemctl status bluetooth
+    # if not, active it with
+    sudo systemctl start bluetooth
+    ```
         
 ### Bluez Raspberry Problem
 - Install bleak (in a virtual environment or globally with sudo)
@@ -419,7 +419,7 @@ The following commands will set-up influxdb and grafana to run on boot inside a 
 
     Installing bluepy with libglib fixes the dependencies
         
-        ```bash
-        sudo apt-get install libglib2.0-dev
-        sudo pip install bluepy
-        ```
+    ```bash
+    sudo apt-get install libglib2.0-dev
+    sudo pip install bluepy
+    ```
