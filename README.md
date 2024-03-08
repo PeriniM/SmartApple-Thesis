@@ -116,7 +116,7 @@ Sometimes the Raspberry disconnects on its own from the network when it is in id
     # run bash to install everything and select whether the device is a Gateway or Server
     cd ./SmartApple-Thesis
     sudo chmod +x setup.sh
-    sh setup.sh
+    ./setup.sh
     ```
     
 - to discard local changes and fetch updated github repo
