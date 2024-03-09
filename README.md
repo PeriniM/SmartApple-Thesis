@@ -29,6 +29,23 @@ The project aims to develop a system to monitor the stress of apples during the 
     
 - Select **RASPBERRY PI OS (64-BIT)**
 - Press **WRITE** to flash the micro-SD
+- If you want to add new wifi credentials, you can create a wpa_supplicant.conf file and place it in the root of the sd, with this content:
+    ```bash
+    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    update_config=1
+    
+    network={
+        ssid="UNITN-SHIELD4US-WIFI"
+        psk=""
+        id_str="portable_router"
+    }
+    
+    network={
+        ssid="PROVA-SSID"
+        psk="PASSWORD"
+        id_str="prova_access_point"
+    }
+    ```
 ### Update BLE stack
 - I have found that the bluez version **5.66** works better than others, so let’s update it (my current raspberry kernel is **6.1.21-v8+,** [Troubleshooting — bleak 0.21.1 documentation](https://bleak.readthedocs.io/en/latest/troubleshooting.html))
     
