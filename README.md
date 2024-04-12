@@ -8,7 +8,7 @@ The project aims to develop a system to monitor the stress of apples during the 
 
 - Run directly the script located in data-analysis/acquisition_app.py
 - It will start looking for Smart Apples (Arduino Nicla) with a known MAC address and start the streaming of the BLE packets
-- We can save the data in a local csv (by setting the save2local flag), send it to a MQTT server (by setting the send2mqtt flag) or save it directly in the InfluxDB database. You can also decide to activate all of them at the same time
+- We can save the data in a local csv (by setting the save2local flag), send it to a MQTT server (by setting the send2mqtt flag) or save it directly in the InfluxDB database (by setting the send2influxdb flag). You can also decide to activate all of them at the same time
 - The data saved in InfluxDB can be retrieve using the master-raspberry/test/pull_influxdb.py script (be careful of the timestamp since there is no RTC module in the Raspberry Pi and therefore it would be the best to take the last few hours or minutes instead of specifying a range).
 
 ## Option 2 - Slave & Master
