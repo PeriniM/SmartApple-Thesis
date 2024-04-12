@@ -2,6 +2,26 @@
 
 The project aims to develop a system to monitor the stress of apples during the grading process in industrial plants. The system is composed of three main components: the Smart Apple, the IoT Gateway, and the IoT Server. The Smart Apple is a low-cost IoT device placed inside a real apple that measures the accelerations and angular velocities of the fruit and sends the data to the IoT Gateway. The IoT Gateway is a Raspberry Pi that collects the data from the Smart Apples and sends it to the IoT Server. The IoT Server is a Raspberry Pi that stores the data in a InfluxDB database and provides a web interface to visualize the data with some impact analyses. The system is designed to be scalable and easy to deploy in industrial environments.
 
+# Operational steps
+
+## Option 1 - Only Master
+
+- Run directly the script located in data-analysis/acquisition_app.py
+- It will start looking for Smart Apples (Arduino Nicla) with a known MAC address and start the streaming of the BLE packets
+- We can save the data in a local csv (by setting the save2local flag), send it to a MQTT server (by setting the send2mqtt flag) or save it directly in the InfluxDB database. You can also decide to activate all of them at the same time
+- The data saved in InfluxDB can be retrieve using the master-raspberry/test/pull_influxdb.py script (be careful of the timestamp since there is no RTC module in the Raspberry Pi and therefore it would be the best to take the last few hours or minutes instead of specifying a range).
+
+## Option 2 - Slave & Master
+
+- **Raspberry Pi Master**
+    - Run the script located in master-raspberry/app/main.py
+    - It will start listening to the MQTT topic and when some data is received, it will push them to the InfluxDB database
+- **Raspberry Pi Slave**
+    - Run the script located in slave-raspberry/app/main.py
+    - It will start looking for Smart Apples (Arduino Nicla) with a known MAC address and start the streaming of the BLE packets
+    - After receiving some packets, it will write them on the MQTT topic
+- The data saved in InfluxDB can be retrieve using the master-raspberry/test/pull_influxdb.py script (be careful of the timestamp since there is no RTC module in the Raspberry Pi and therefore it would be the best to take the last few hours or minutes instead of specifying a range)
+
 # Raspberry Pi 4 Set-up
 
 ## Common Set-up
