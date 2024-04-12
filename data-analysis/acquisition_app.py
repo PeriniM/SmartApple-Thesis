@@ -1,5 +1,6 @@
 import asyncio
 from bleak import BleakClient, BleakScanner
+from influxdb_client import InfluxDBClient, Point, WriteOptions
 from decouple import config
 import paho.mqtt.client as paho
 from datetime import datetime
@@ -19,6 +20,7 @@ PROGRAM_COMMAND_UUID = "19b10000-8002-537e-4f6c-d104768a1214"
 SENSORS_UUID = "19b10000-A001-537e-4f6c-d104768a1214" # UUID to read from
 
 nicla_address = ["EE:DF:46:E7:08:80", "9C:E3:E6:C9:4A:C8"]
+prod_line_id = ["test", "test"]
 connected_address = None
 device_name = None
 ble_client = None
@@ -26,13 +28,58 @@ mqtt_client = None
 isStarted = False
 send2mqtt = False
 save2local = True
+send2influxdb = True
 file_name = None
 file_path = None
 df = None
 file_name = f"impacts_{datetime.utcnow().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
 file_path = os.path.join(save_dir, file_name)
-df = pd.DataFrame(columns=['_time', 'packet_id', 'gyro_x', 'gyro_y', 'gyro_z', 'accel_x', 'accel_y', 'accel_z', 'quat_x', 'quat_y', 'quat_z', 'quat_w'])
-df.to_csv(file_path, header=True, index=False)
+
+if save2local:
+    df = pd.DataFrame(columns=['_time', 'packet_id', 'gyro_x', 'gyro_y', 'gyro_z', 'accel_x', 'accel_y', 'accel_z', 'quat_x', 'quat_y', 'quat_z', 'quat_w'])
+    df.to_csv(file_path, header=True, index=False)
+
+# Conversion factors from datasheet
+accel_sensitivity = 4096.0  # Sensitivity for accelerometer in LSB/g
+gyro_sensitivity = 16.4    # Sensitivity for gyroscope in LSB/°/s
+
+if send2influxdb:
+    # InfluxDB Settings
+    INFLUXDB_URL = config('INFLUXDB_URL', cast=str)
+    INFLUXDB_TOKEN = config('INFLUXDB_TOKEN', cast=str)
+    INFLUXDB_ORG = config('INFLUXDB_ORG', cast=str)
+    INFLUXDB_BUCKET = config('INFLUXDB_BUCKET', cast=str)
+
+    # Setup InfluxDB client
+    influxdb_client = InfluxDBClient(url=INFLUXDB_URL, token=INFLUXDB_TOKEN, debug=True, org=INFLUXDB_ORG)
+
+    # Configure batch write client
+    write_api = influxdb_client.write_api(write_options=WriteOptions(
+            batch_size=50,
+            flush_interval=10_000,
+            jitter_interval=2_000,
+            retry_interval=5_000,
+            max_retries=5,
+            max_retry_delay=30_000,
+            max_close_wait=300_000,
+            exponential_base=2
+        ))
+
+# Helper function to write to InfluxDB directly without appending
+def write_to_influxdb(address, prod_line_id, data, timestamp):
+    measurement = "nicla"
+    tags = {
+        "address": address,
+        "production_line": prod_line_id,
+    }
+
+    point = Point(measurement).time(timestamp)
+    for key, value in tags.items():
+        point = point.tag(key, value)
+    for key, value in data.items():
+        point = point.field(key, value)
+
+    write_api.write(INFLUXDB_BUCKET, INFLUXDB_ORG, point)
 
 if send2mqtt:
     # MQTT Settings
@@ -60,6 +107,15 @@ def notification_handler(sender: int, data: bytearray):
     match = pattern.match(raw_data)
     if match:
         packet_id, g_x, g_y, g_z, a_x, a_y, a_z, q_x, q_y, q_z, q_w = match.groups()
+
+        # Convert accelerometer and gyroscope data to standard units
+        a_x = float(a_x) / accel_sensitivity
+        a_y = float(a_y) / accel_sensitivity
+        a_z = float(a_z) / accel_sensitivity
+        g_x = float(g_x) / gyro_sensitivity
+        g_y = float(g_y) / gyro_sensitivity
+        g_z = float(g_z) / gyro_sensitivity
+
         timestamp = datetime.utcnow()
         print(f"{timestamp},{packet_id},{g_x},{g_y},{g_z},{a_x},{a_y},{a_z},{q_x},{q_y},{q_z},{q_w}")
 
@@ -68,7 +124,23 @@ def notification_handler(sender: int, data: bytearray):
             if int(packet_id) % 100 == 0:
                 df.to_csv(file_path, header=False, index=False, mode='a')
                 df = pd.DataFrame(columns=['_time', 'packet_id', 'gyro_x', 'gyro_y', 'gyro_z', 'accel_x', 'accel_y', 'accel_z', 'quat_x', 'quat_y', 'quat_z', 'quat_w'])
-      
+
+        if send2influxdb:
+            # Write to InfluxDB
+            write_to_influxdb(connected_address, prod_line_id[nicla_address.index(connected_address)], {
+                "packet_id": int(packet_id),
+                "g_x": g_x,
+                "g_y": g_y,
+                "g_z": g_z,
+                "a_x": a_x,
+                "a_y": a_y,
+                "a_z": a_z,
+                "q_x": float(q_x),
+                "q_y": float(q_y),
+                "q_z": float(q_z),
+                "q_w": float(q_w),
+            }, timestamp)
+
         if send2mqtt:
             # print(f"nicla/{connected_address}/movement_sensor_data", f"{timestamp},{packet_id},{g_x},{g_y},{g_z},{a_x},{a_y},{a_z},{q_x},{q_y},{q_z},{q_w}")
             send_to_mqtt(f"nicla/{connected_address}/movement_sensor_data", f"{timestamp},{packet_id},{g_x},{g_y},{g_z},{a_x},{a_y},{a_z},{q_x},{q_y},{q_z},{q_w}")
